@@ -66,7 +66,7 @@ The **Who** column says who hears the cue:
 | Surrender cascade | Each falling tile is one drum hit, rising in pitch and level; big gong at the end | All |
 | Tally / board: name submitted | Gong and a short roll | All |
 | **Crown** (8 steps, 2.6 s apart) | One arc with one climax (revised 13 Oct after the owner's listen, see Red-team review 2):<br>Step 0: two spaced big-drum strokes. This replaces the current `sfx.roll()` on render.<br>Step 1: one medium stroke.<br>Step 2 ("Đại Thắng Minh Hoàng Đế"): the only tutti: big-drum ensemble, horn, one bright gong that rings and fades out by about 6.5 s.<br>Step 3 ("Xưng Hoàng Đế"): one accent stroke, the ringing gong ducked under it. No new gong.<br>Steps 4–6: silence, so the text breathes.<br>Step 7: one closing stroke | All |
-| **Finale** (7 steps, 2.4 s apart) | Step 0 ("Trải hơn một nghìn năm"): reversed gong swell, the sound of time rewinding.<br>Steps 1–2 (the word morph): two drum strikes, the second one pitched down, with a quiet synth sub and a filtered pulse, so ancient turns modern.<br>Step 3 ("Claude"): hybrid impact (big drum, synth sub, gong).<br>Step 5 ("Hỡi tướng sỹ!"): war-drum call to arms.<br>Step 6 (seal): stamp, horn, gong decaying | All |
+| **Finale** (7 steps, 2.4 s apart) | Step 0 ("Trải hơn một nghìn năm"): reversed gong swell, the sound of time rewinding.<br>Steps 1–2 (the word morph): two drum strikes, the second one pitched down, with a quiet synth sub and a filtered pulse, so ancient turns modern.<br>Step 3 ("Claude"): hybrid impact (big drum, synth sub, gong).<br>Step 5 ("Hỡi tướng sĩ!"): war-drum call to arms.<br>Step 6 (seal): stamp, horn, gong decaying | All |
 
 **Mix targets:**
 - Keep the energy in the mid band, above 150 Hz. Meet and laptop speakers drop the lows.

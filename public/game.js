@@ -805,13 +805,13 @@ const scenes = {
         <header><span>Hoa Lư truyền hịch</span><h3>Hịch Cờ Lau</h3></header>
         <p>Từng nghe: thuở Hoa Lư, trẻ chăn trâu bẻ lau làm cờ mà dựng nên nghiệp đế. Quân dẫu nhiều hay ít, thắng bại đều cốt ở chỗ luyện tập trước khi ra trận.</p>
         <p>Nay mười hai sứ quân lại nổi: code rối như tơ vò, lỗi ẩn như bóng ma, hạn chót dồn như nước lũ. Bao bữa quên ăn, bao đêm trắng mắt, lòng những mong sớm dẹp yên bờ cõi.</p>
-        <p class="address" data-at="5">Hỡi tướng sỹ!</p>
+        <p class="address" data-at="5">Hỡi tướng sĩ!</p>
         <p data-at="5">Chúng ta chớ lấy việc gõ tay từng dòng làm cần mẫn, chớ lấy việc vá lỗi qua loa làm công trạng, chớ vì quen lối cũ mà ngại binh pháp mới. Giặc đã tới ải, há khoanh tay mà nhìn?</p>
         <p data-at="5">Nay lá cờ lau mới đã trong tay. Hãy cùng luyện binh pháp: hỏi cho tường, lập kế rồi hãy đánh, thử cho chắc rồi mới tin. Được vậy, giặc nào chẳng dẹp, ải nào chẳng qua.</p>
         <footer data-at="5"><span>Bố cáo khắp nơi, ai nấy đều hay.</span><div class="royal-seal" data-at="6">${SEAL}</div></footer>
       </article>
       <div class="call" data-at="6">
-        <span class="kicker">Cờ đã phất. Tướng sỹ, xuất trận!</span>
+        <span class="kicker">Cờ đã phất. Tướng sĩ, xuất trận!</span>
         <span class="cta">Cùng “Cờ Lau”,<br>chúng ta tiến!</span>
       </div>
       <div class="row" data-at="6"><button class="btn alt" data-act="board">Xem bảng vàng</button><button class="btn alt" data-act="title">Chơi lại</button><span class="made">Trò chơi này được làm cùng Claude.</span></div>

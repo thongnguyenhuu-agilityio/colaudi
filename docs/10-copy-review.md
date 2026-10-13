@@ -64,11 +64,12 @@ Cột "Màn" cho biết dòng nằm ở đâu. Gạch bỏ dòng nào thì giữ
 ## 3. Các điểm cố ý giữ nguyên
 
 - Phương án A/B/C, câu hỏi thử thách, mẹo "Chiêu Claude" (nội dung dạy, cần hiểu ngay).
-- Câu chốt "Cùng “Cờ Lau”, chúng ta tiến!" (Q-27), "Hỡi tướng sỹ!", "Cờ đã phất. Tướng sỹ, xuất trận!", "Bố cáo khắp nơi, ai nấy đều hay.", "Lưu danh thiên cổ.", "Trải hơn một nghìn năm…", lời bàn của Lê Văn Hưu, "Không xưng Vương. Xưng Hoàng Đế.".
+- Câu chốt "Cùng “Cờ Lau”, chúng ta tiến!" (Q-27), "Hỡi tướng sĩ!", "Cờ đã phất. Tướng sĩ, xuất trận!", "Bố cáo khắp nơi, ai nấy đều hay.", "Lưu danh thiên cổ.", "Trải hơn một nghìn năm…", lời bàn của Lê Văn Hưu, "Không xưng Vương. Xưng Hoàng Đế.".
 - Tiêu đề màn giới thiệu "Cậu bé chăn trâu và lá cờ lau" (có kiểm thử đọc tiêu đề này).
 
 ## 4. Việc chờ Thông quyết
 
 - Dòng "Năm 967" ở màn quy phục không có trong [01](01-yeu-cau.md) mục 12 (mục này chỉ ghi loạn 965–968 và lên ngôi 968). Chưa sửa vì không có nguồn để đối chiếu.
-- Chữ "sỹ" (tướng sỹ) khác với "sĩ" trong tên "Hịch tướng sĩ" gốc; giữ theo cách Thông đã dùng.
+- Chữ "sỹ" đã đổi thành "sĩ" (tướng sĩ) cho khớp tên "Hịch tướng sĩ" gốc. Thông duyệt ngày 13/10/2026.
+- "Năm 967" ở màn quy phục được giữ: năm dẹp xong mười hai sứ quân, trước khi lên ngôi năm 968. Thông duyệt ngày 13/10/2026.
 - Dòng 1 trong [06 Kịch bản](06-kich-ban-va-hoi-dap-khan-gia.md) đã đổi "Mỗi lần xuất quân" thành "Mỗi phen xuất quân" cho khớp màn hình.
