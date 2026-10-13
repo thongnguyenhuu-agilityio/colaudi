@@ -80,6 +80,10 @@ Gói 100 người (Business Starter) không có chức năng ghi hình cuộc h�
 
 - [ ] Đủ 3 người: người trình bày, người vận hành phòng B, một người xem ở phòng B
 - [ ] Âm thanh từ phòng A sang phòng B rõ, không vọng
+- [ ] Người trình bày chia sẻ **tab Chrome** của game (không phải cả màn hình) và tích **"Also share tab audio"**; kiểm tra lại sau mỗi lần quay về từ slide, app Claude hay terminal
+- [ ] Sáng hôm đó: mở `?presenter`, bấm `M` hai lần để mở khoá và nghe thử âm thanh
+- [ ] Co-host phòng A và người vận hành phòng B tắt mic khi game phát tiếng (chống vọng làm méo tiếng)
+- [ ] Người nghe ở phòng B đánh giá độ to và độ rõ; nếu tiếng ngân chiêng bị nhoè, giảm âm lượng hoặc chạy game không tiếng (`M`). Game không cần âm thanh để chơi
 - [ ] Code và chữ trong game đọc được ở phòng B
 - [ ] Thử quy trình ghế phát biểu: rời B, vào A, hỏi, quay lại
 - [ ] Mở game từ mạng văn phòng và qua VPN

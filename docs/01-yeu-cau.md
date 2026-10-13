@@ -183,7 +183,7 @@ Sáu quyết định kiến trúc (ADR-01 đến ADR-06), kèm sơ đồ, API v�
 | FR-13 | `api/leaderboard.js` → `DELETE` | `tests/api.test.js` |
 | NFR-06 | `api/leaderboard.js` → kiểm tra đầu vào | `tests/api.test.js` (5 trường hợp từ chối) |
 | FR-06, FR-14, FR-15, FR-19 | `public/game.js` → cảnh `surrender`, `crown`, `finale`, ấn `SEAL` | `e2e/leaderboard.spec.js` (chế độ nhanh tới màn "Claude") |
-| FR-18 | `public/game.js` → khối `sound` (`sfx.drum`, `roll`, `gong`, `syncMute`): tổng hợp bằng Web Audio, không file âm thanh | Nghe thử bằng loa máy chiếu trong buổi chạy thử; tắt tiếng (M) cắt cả tiếng ngân |
+| FR-18 | `public/game.js` → khối `sound` (`sfx.cue`, `sfx.scene`, `setMuted`, `loadSamples`): 7 mẫu CC0 trong `public/sound/` (nguồn ở `LICENSES.md`) phát thành các đoạn ngắn theo bảng cue của [09](09-sound-plan.md); bộ tổng hợp Web Audio là phương án dự phòng, nút ghi rõ "bản tổng hợp (mẫu lỗi)"; tắt tiếng (nút hoặc M) được nhớ trong `localStorage` | `e2e/sound.spec.js` (7 ca: chạy tới đoạn kết khi bật và khi tắt tiếng không lỗi console; nhớ tắt tiếng sau khi tải lại; nhãn dự phòng khi mẫu lỗi và bấm để tải lại; rời cảnh và tắt tiếng dừng hết nguồn âm; tab ẩn thì dừng, hiện lại thì chạy tiếp); đo mức bằng `OfflineAudioContext` (xem [09](09-sound-plan.md) §6); nghe thật ở buổi chạy thử 2 |
 
 ---
 

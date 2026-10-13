@@ -3,7 +3,7 @@
 | Item | Detail |
 | --- | --- |
 | Updated | 13 Oct 2026, after a red-team review of the first draft |
-| Status | Proposed. Needs Thong's go/no-go on the Phase 0 prototype **by Wed 14 Oct, morning** |
+| Status | Phase 1 implemented on `feat/war-drums-game`, awaiting owner listen + dry run 2 |
 | Requirement | FR-18 "Có âm thanh trống và chiêng, bật tắt được" (Nên có), [01](01-yeu-cau.md) |
 | Related | [05 Google Meet](05-to-chuc-google-meet.md) · [07 Deployment](07-deployment.md) · [08 Red-team review](08-red-team-review.md) |
 
@@ -109,6 +109,15 @@ The **Who** column says who hears the cue:
 | What the audience hears | Dry run 2: presenter shares the **tab with audio**. A listener **in room B** judges level and clarity, and goes through the source switches of [07](07-deployment.md) §6 |
 
 `npm test` and the e2e suite must be green before commit.
+
+### Phase 1 as built (13 Oct)
+
+Owner's picks: taiko "Taiko Drum Sequence" (Freesound 459561), gong "Gong Brilliant Paiste 32"" (486629), conch (78974), all CC0; files, edits and proof links are in `public/sound/LICENSES.md` (7 files, 465 KB).
+
+- **Cues:** `start`, `fight`, `tick` and `timeup` (the last two presenter only), `correct`, `wrong`, `tile` (surrender cascade) with `end`, `submitted`, and `crown`/`finale` by step number. A cue fired by a click is issued after `go()`, so the scene change does not fade it.
+- **Differences from the plan:** (1) while the samples are still loading (a second or two) cues use the synth, then switch to samples; a failed load keeps the synth and labels the button. (2) In the fallback state a click on the sound button retries the load and `M` still toggles mute. (3) Gong ring is capped at 10.5 s plus the reverb tail, so rings end 10.7 to 12.2 s after the strike. (4) Vote cues follow the visible bar: the timers are rescheduled on every battle render, because a wrong answer re-renders the card and restarts the bar. (5) The recorded drums are 90 % below 300 Hz, so big strokes also get a quiet synth skin layer.
+- **Measurement** (headless Chromium, `OfflineAudioContext`, 44.1 kHz, samples decoded at the headless 24 kHz context rate; reproduce with `?presenter&soundtest` and `window.__sound.render`): every cue and stack peaks at or below 0.88 after the clipper and 0.93 before it; the energy above 150 Hz is 0.1 to 10.4 dB below the full band (drum-only cues are the lowest, about 8 to 10 dB). Run-to-run variation of the synth noise is about 0.04 in peak.
+- **Not yet checked:** how it sounds, level through Meet's tab audio, and the room-B relay (dry run 2).
 
 ## 7. Timeline and gates
 

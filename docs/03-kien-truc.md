@@ -26,12 +26,15 @@ flowchart LR
 | --- | --- |
 | `public/index.html` | Khung trang, toàn bộ CSS |
 | `public/game.js` | Nội dung 12 sứ quân, các màn, âm thanh, cờ lau, ấn son, phần bảng vàng phía trình duyệt |
+| `public/sound/` | 7 mẫu âm thanh MP3 (trống taiko, chiêng, tù và), tổng cộng dưới 1 MB; nguồn và giấy phép CC0 trong `LICENSES.md` |
 | `public/score.js` | Luật tính điểm: hàm thuần, dùng chung cho trình duyệt và server |
 | `api/leaderboard.js` | API bảng vàng; dùng Upstash Redis nếu có biến môi trường, nếu không thì lưu trong bộ nhớ |
 | `scripts/dev.mjs` | Server chạy thử ở máy, không cần cài thư viện |
 | `tests/` | Kiểm thử đơn vị và API (Vitest) |
 | `e2e/` | Kiểm thử đầu cuối trên trình duyệt (Playwright) |
 | `vercel.json` | Cấu hình deploy: phục vụ thư mục `public/`, không build, không cài thư viện |
+
+Âm thanh (FR-18): khối `sound` trong `game.js` tải 7 mẫu bằng `fetch` + `decodeAudioData` ngay khi mở trang (người chơi tải sau lần hỏi bảng vàng đầu tiên), rồi phát các cue ngắn qua `sfx.cue(tên)`; không có nhịp nền hay vòng lặp. Mỗi cảnh có một nút gain riêng: `go()` làm nhỏ dần 150 ms và dừng mọi nguồn âm của cảnh cũ; ở màn đăng quang và đoạn kết, mỗi bước là một nhóm riêng nên Enter bỏ qua bước thì trống bước trước dừng, còn chiêng chỉ có một tiếng tại một lúc. Nếu một mẫu lỗi, mọi cue chuyển sang bộ tổng hợp Web Audio và nút ghi "Âm thanh: bản tổng hợp (mẫu lỗi) · bấm để tải lại". Tab ẩn thì tắt dần và `suspend()`. Trạng thái tắt tiếng lưu trong `localStorage`. Chi tiết: [09 Sound plan](09-sound-plan.md).
 
 ## 3. Các màn trong game
 
