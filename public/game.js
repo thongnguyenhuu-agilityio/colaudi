@@ -168,99 +168,344 @@ const SEAL = `<svg viewBox="0 0 160 160" role="img" aria-label="Ấn triện CLA
 </svg>`;
 
 /* ---------- sound ----------
-   Everything is synthesised with Web Audio, no files. Laptop and projector speakers lose most energy below ~100 Hz,
-   so the war drum puts its punch in a saturated mid "skin" layer, and the chiêng uses inharmonic partials
-   detuned in pairs so they beat and shimmer. One master bus (reverb send + soft clipper) is built once per context.
+   Recorded CC0 samples (public/sound/*.mp3, provenance in public/sound/LICENSES.md) played as short, self-contained
+   phrases: the engine never runs a beat grid, because the crown and finale steps are setTimeout-driven and Enter skips
+   them. Drum hits go through an "ensemble" (3 or 4 layers, micro-timing, tiny pitch offsets, one low layer) and a
+   hall reverb. The Web Audio synth below (osc/noise/syn) is the fallback when a sample fails to load, and adds a quiet
+   mid-range "skin" under the big strokes, because the recorded drums keep ~90% of their energy under 300 Hz and laptop
+   speakers lose it.
+   Lifecycle: every scene owns one gain node. go() calls sfx.scene(), which fades that node over 150 ms and stops its
+   sources, so nothing from the previous scene rings on. Inside crown/finale each step owns a "step group" that is
+   faded when the next step starts (Enter-skipping), but the gong lives in its own group: one gong voice at a time,
+   a new gong fades the old one. A mute, a hidden tab or a scene change all go through the same fade.
    The clipper is a WaveShaper, not a DynamicsCompressor: Chrome's compressor ducks the first ~50 ms of a new context,
-   which swallowed the drum on the start button. */
-const MASTER = 0.9, AHEAD = 0.01; // a little lookahead so a hit's attack is never cut by the render quantum
-let ac = null, bus = null;
-function audio() {
-  if (state.muted) return null;
-  try {
-    if (!ac) { ac = new (window.AudioContext || window.webkitAudioContext)(); bus = makeBus(ac); }
-    if (ac.state === 'suspended') ac.resume();
-    return ac;
-  } catch { return null; }
+   which swallowed the drum on the start button. Sound code never throws: every entry point is wrapped. */
+const MASTER = PRESENTER ? 0.82 : 0.574; // players hear the cues at 70% of the presenter level
+const AHEAD = 0.01; // a little lookahead so a hit's attack is never cut by the render quantum
+const WET = 0.9; // hall reverb return; per-voice sends decide how much of each sound goes in
+const MUTE_KEY = 'colaudi.muted';
+const SAMPLE_FILES = ['taiko_manh', 'taiko_vua', 'taiko_nhe', 'taiko_don', 'chieng', 'chieng_nguoc', 'tu_va'];
+let ac = null, bus = null, scene = null, rnd = Math.random;
+const buf = {}; // decoded samples by file name
+let sampleState = 'idle'; // idle | loading | ok | failed
+function seeded(seed) { // mulberry32: the offline measurement renders are repeatable
+  let a = seed >>> 0;
+  return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; };
 }
-function makeBus(c) {
-  const master = c.createGain(), clip = c.createWaveShaper(), verb = c.createConvolver(), wet = c.createGain();
-  master.gain.value = MASTER; wet.gain.value = 0.4;
-  const knee = 0.7, soft = new Float32Array(2048); // linear up to the knee, then bends smoothly towards 1
+const SOFT = (() => { // linear up to the knee, then bends smoothly towards 1
+  const knee = 0.7, soft = new Float32Array(2048);
   for (let i = 0; i < soft.length; i++) {
     const x = i / 1023.5 - 1, a = Math.abs(x);
     soft[i] = a <= knee ? x : Math.sign(x) * (knee + (1 - knee) * Math.tanh((a - knee) / (1 - knee)));
   }
-  clip.curve = soft;
-  const rate = c.sampleRate, ir = c.createBuffer(2, rate * 2.4 | 0, rate);
+  return soft;
+})();
+// Hall impulse: 30 ms pre-delay, ~5 s, the tail is progressively lowpassed so it darkens as it dies.
+function hallIR(c) {
+  const rate = c.sampleRate, len = Math.round(rate * 5.2), pre = Math.round(rate * 0.03), r = seeded(7);
+  const ir = c.createBuffer(2, len, rate);
   for (let ch = 0; ch < 2; ch++) {
-    const d = ir.getChannelData(ch);
-    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length) ** 3.5;
+    const d = ir.getChannelData(ch); let y = 0;
+    for (let i = pre; i < len; i++) {
+      const t = (i - pre) / rate, x = r() * 2 - 1;
+      const fc = 6000 * Math.pow(0.1, Math.min(1, t / 3.5)); // 6 kHz at the start, 600 Hz by 3.5 s
+      y += (1 - Math.exp(-2 * Math.PI * fc / rate)) * (x - y);
+      d[i] = y * Math.exp(-t / 0.66) * (1 - Math.exp(-t / 0.02)); // ~4.5 s to -60 dB, soft onset
+    }
   }
-  verb.buffer = ir;
+  return ir;
+}
+// One bus per context: master gain -> soft clipper -> output. Scenes plug into master (see sc()).
+function makeBus(c, o = {}) {
+  const master = c.createGain(), clip = c.createWaveShaper(), rate = c.sampleRate;
+  master.gain.value = o.master ?? MASTER;
+  clip.curve = o.clip === false ? null : SOFT; // null = pass-through, for the pre-clip measurement
+  master.connect(clip).connect(c.destination);
   const noise = c.createBuffer(1, rate, rate), nd = noise.getChannelData(0);
   for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
   const curve = new Float32Array(1024);
   for (let i = 0; i < curve.length; i++) curve[i] = Math.tanh(3 * (i / 511.5 - 1));
-  verb.connect(wet).connect(master); master.connect(clip).connect(c.destination);
-  return { master, verb, noise, curve };
+  return { master, ir: hallIR(c), noise, curve };
+}
+function ensureCtx() {
+  if (!ac) { ac = new (window.AudioContext || window.webkitAudioContext)(); bus = makeBus(ac); }
+  return ac;
+}
+// The context to play on right now, or null: muted, tab hidden, or no Web Audio.
+function audio() {
+  if (state.muted || document.hidden) return null;
+  try {
+    const c = ensureCtx();
+    if (c.state === 'suspended') c.resume().catch(() => {});
+    return c;
+  } catch { return null; }
 }
 function syncMute() {
-  if (bus) bus.master.gain.setTargetAtTime(state.muted ? 0 : MASTER, ac.currentTime, 0.03);
+  try { if (bus) bus.master.gain.setTargetAtTime(state.muted || document.hidden ? 0 : MASTER, ac.currentTime, 0.03); } catch { /* never throw */ }
 }
-// One enveloped voice: src (→ … → out) → gain → master, plus a reverb send.
-function voice(c, src, t, peak, attack, decay, send = 0.2, out = src) {
-  const g = c.createGain();
-  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + attack);
-  g.gain.exponentialRampToValueAtTime(0.0001, t + attack + decay);
-  out.connect(g).connect(bus.master);
-  if (send) { const s = c.createGain(); s.gain.value = send; g.connect(s).connect(bus.verb); }
-  src.start(t); src.stop(t + attack + decay + 0.05);
+
+/* scene -> groups -> sources. A scene has one gain node; a group is a gain node whose sources can be faded together. */
+function sc() {
+  if (!scene) { const g = ac.createGain(); g.connect(bus.master); scene = { g, groups: new Set(), step: null, gong: null, verb: null }; }
+  return scene;
 }
-function osc(c, type, from, to, t, glide) {
-  const o = c.createOscillator(); o.type = type;
-  o.frequency.setValueAtTime(from, t); o.frequency.exponentialRampToValueAtTime(to, t + glide);
-  return o;
+function mkGroup(s) {
+  const g = ac.createGain(); g.connect(s.g);
+  const o = { g, srcs: new Set(), dead: false, s }; s.groups.add(o); return o;
 }
-function noise(c, t, freq, q, peak, decay, send) {
-  const n = c.createBufferSource(), f = c.createBiquadFilter();
-  n.buffer = bus.noise; f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = q;
-  n.connect(f); voice(c, n, t, peak, 0.002, decay, send, f);
+const grp = (s = sc()) => (s.step && !s.step.dead ? s.step : (s.step = mkGroup(s)));
+function verbOf(s) { // one convolver per scene, so a scene change also silences its reverb tail
+  if (!s.verb) {
+    const v = ac.createConvolver(), w = ac.createGain();
+    v.buffer = bus.ir; w.gain.value = WET; v.connect(w).connect(s.g); s.verb = v;
+  }
+  return s.verb;
 }
-function tone(from, to, dur, type, vol, delay = 0) {
-  const c = audio(); if (!c) return;
-  const t = c.currentTime + AHEAD + delay;
-  voice(c, osc(c, type, from, to, t, dur), t, vol, 0.005, dur, 0);
+function track(o, src) {
+  o.srcs.add(src);
+  src.addEventListener('ended', () => {
+    o.srcs.delete(src); try { src.disconnect(); } catch { /* gone */ }
+    if (o.dead && !o.srcs.size) { try { o.g.disconnect(); } catch { /* gone */ } o.s.groups.delete(o); }
+  });
 }
-const sfx = {
-  // Trống trận: low body + saturated skin + stick slap. v is the accent (1 = normal hit).
-  drum(d = 0, v = 1) {
-    const c = audio(); if (!c) return;
-    const t = c.currentTime + AHEAD + d, p = 1 + (Math.random() - 0.5) * 0.06;
-    voice(c, osc(c, 'sine', 165 * p, 52, t, 0.22), t, 0.9 * v, 0.004, 0.5 + 0.2 * v, 0.25);
-    const skin = c.createWaveShaper(), so = osc(c, 'triangle', 260 * p, 118 * p, t, 0.09);
+// Fade a group out from `at` (default now) over `sec`, then stop its sources.
+function fade(o, sec, at) {
+  if (!o) return;
+  const t = Math.max(at ?? 0, ac.currentTime);
+  if (o.dead && t >= o.fadeAt) return; // already fading, and no later than this; an earlier fade (scene change) still wins
+  o.dead = true; o.fadeAt = t;
+  o.g.gain.cancelScheduledValues(t); o.g.gain.setTargetAtTime(0, t, sec / 6);
+  o.srcs.forEach(src => { try { src.stop(t + sec + 0.03); } catch { /* not started */ } });
+  if (!o.srcs.size) { try { o.g.disconnect(); } catch { /* gone */ } o.s.groups.delete(o); }
+}
+function killScene() {
+  const s = scene; scene = null;
+  if (!s || !ac) return;
+  const t = ac.currentTime;
+  s.g.gain.cancelScheduledValues(t); s.g.gain.setTargetAtTime(0, t, 0.025);
+  [...s.groups].forEach(g => fade(g, 0.15));
+  setTimeout(() => { try { s.g.disconnect(); } catch { /* gone */ } }, 700);
+}
+
+/* Sample player. o: gain, rate, dt (s), pan, send (reverb), lp (lowpass Hz), off/dur (slice, buffer seconds),
+   cut (fade the slice end), cap [from, to] (ramp to silence between those playback seconds), grp. */
+function play(name, t, o = {}) {
+  const c = ac, b = buf[name]; if (!b) return;
+  const s = sc(), gp = o.grp || grp(s), rate = o.rate || 1, off = o.off || 0, g = o.gain ?? 1;
+  const src = c.createBufferSource(), env = c.createGain();
+  src.buffer = b; src.playbackRate.value = rate;
+  const t0 = t + (o.dt || 0), len = Math.min(o.dur ?? b.duration, b.duration - off) / rate;
+  env.gain.setValueAtTime(g, t0);
+  if (o.cut) { const f = Math.min(0.08, len / 2); env.gain.setValueAtTime(g, t0 + len - f); env.gain.linearRampToValueAtTime(0, t0 + len); }
+  if (o.cap) { env.gain.setValueAtTime(g, t0 + o.cap[0]); env.gain.linearRampToValueAtTime(0, t0 + o.cap[1]); }
+  let node = src;
+  if (o.lp) { const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = o.lp; node.connect(f); node = f; }
+  if (o.pan && c.createStereoPanner) { const p = c.createStereoPanner(); p.pan.value = o.pan; node.connect(p); node = p; }
+  node.connect(env); env.connect(gp.g);
+  if (o.send) { const sg = c.createGain(); sg.gain.value = o.send; env.connect(sg).connect(verbOf(s)); }
+  src.start(t0, off); src.stop(t0 + (o.cap ? Math.min(len, o.cap[1]) : len) + 0.05);
+  track(gp, src);
+}
+// Ensemble: 3 or 4 layers, +-10..30 ms micro-timing, +-1..3% pitch, one low layer (rate 0.75, lowpassed).
+// Big strokes also get a quiet synth skin for the mid band.
+const ENS = 0.42;
+function ens(name, t, g, o = {}) {
+  const send = o.send ?? 0.35, r = o.rate || 1, p = { off: o.off, dur: o.dur, cut: o.cut }, k = g * ENS;
+  const j = () => (0.01 + rnd() * 0.02) * (rnd() < 0.5 ? -1 : 1);
+  play(name, t, { ...p, gain: k, send, rate: r });
+  play(name, t, { ...p, gain: k * 0.75, send, pan: -0.45, rate: r * (1 + j()), dt: 0.01 + rnd() * 0.02 });
+  play(name, t, { ...p, gain: k * 0.75, send, pan: 0.45, rate: r * (1 + j()), dt: 0.01 + rnd() * 0.02 });
+  if (!o.light) play(name, t, { ...p, gain: k * 0.8, send: send + 0.1, rate: r * 0.75, dt: rnd() * 0.01, lp: 3000 });
+  if (!o.light && o.body !== false) syn.skin(t, g * 0.4 * (r < 1 ? r : 1));
+}
+// Gong: one voice at a time. The raw strike plus a quiet half-speed layer; the ring is capped at ~10.5 s (+ reverb).
+function gong(t, g, o = {}) {
+  const s = sc();
+  if (s.gong) fade(s.gong, 0.35, t);
+  const gp = s.gong = mkGroup(s), cap = o.cap || [7.5, 10.5];
+  for (const r of o.rates || [1]) play('chieng', t, { grp: gp, gain: g * 0.8, rate: r, send: 0.6, cap });
+  if (o.sub !== false) play('chieng', t, { grp: gp, gain: g * 0.25, rate: 0.5, lp: 500, dt: 0.004, send: 0.4, dur: 6, cap });
+}
+// Horn (conch): two detuned layers. dur cuts it short.
+function horn(t, g, o = {}) {
+  const cut = o.dur != null, d = o.dur;
+  play('tu_va', t, { gain: g * 0.5, send: 0.5, rate: Math.pow(2, -12 / 1200), pan: -0.35, dur: d, cut });
+  play('tu_va', t, { gain: g * 0.5, send: 0.5, rate: Math.pow(2, 12 / 1200), pan: 0.35, dt: 0.012, dur: d, cut });
+}
+// A roll: [delay, level] pairs of single hits, alternating the two softer slices.
+function roll(t, hits, base, o = {}) {
+  hits.forEach(([d, v], i) => ens(i % 2 ? 'taiko_nhe' : 'taiko_vua', t + d, base * v, { light: true, send: 0.3, ...o }));
+}
+const ROLL = [[.2, .55], [.38, .7], [.53, .6], [.66, .8], [.77, .65], [.86, .85], [.94, .75], [1.01, .9]];
+
+/* The synth: used when a sample failed, and for the skin/stick/sub/pulse layers. All times are absolute. */
+const syn = {
+  voice(src, t, peak, attack, decay, send = 0.2, out = src) {
+    const c = ac, s = sc(), gp = grp(s), g = c.createGain();
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + attack);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + attack + decay);
+    out.connect(g).connect(gp.g);
+    if (send) { const sg = c.createGain(); sg.gain.value = send * 0.45; g.connect(sg).connect(verbOf(s)); }
+    src.start(t); src.stop(t + attack + decay + 0.05);
+    track(gp, src);
+  },
+  osc(type, from, to, t, glide) {
+    const o = ac.createOscillator(); o.type = type;
+    o.frequency.setValueAtTime(from, t); o.frequency.exponentialRampToValueAtTime(to, t + glide);
+    return o;
+  },
+  noise(t, freq, q, peak, decay, send) {
+    const n = ac.createBufferSource(), f = ac.createBiquadFilter();
+    n.buffer = bus.noise; f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = q;
+    n.connect(f); syn.voice(n, t, peak, 0.002, decay, send, f);
+  },
+  tone(from, to, dur, type, vol, t) { syn.voice(syn.osc(type, from, to, t, dur), t, vol, 0.005, dur, 0); },
+  // Mid-range skin: saturated triangle + stick slap, without the low body.
+  skin(t, v) {
+    const p = 1 + (rnd() - 0.5) * 0.06, skin = ac.createWaveShaper(), so = syn.osc('triangle', 260 * p, 118 * p, t, 0.09);
     skin.curve = bus.curve; so.connect(skin);
-    voice(c, so, t, 0.6 * v, 0.003, 0.22, 0.3, skin);
-    noise(c, t, 1900, 0.9, 0.6 * v, 0.05, 0.15);
+    syn.voice(so, t, 0.6 * v, 0.003, 0.22, 0.3, skin);
+    syn.noise(t, 1900, 0.9, 0.6 * v, 0.05, 0.15);
+  },
+  // Trống trận: low body + saturated skin + stick slap. v is the accent (1 = normal hit).
+  drum(t, v = 1) {
+    const p = 1 + (rnd() - 0.5) * 0.06;
+    syn.voice(syn.osc('sine', 165 * p, 52, t, 0.22), t, 0.9 * v, 0.004, 0.5 + 0.2 * v, 0.25);
+    syn.skin(t, v);
   },
   // An accelerating war-drum figure that lands on one big accented stroke (~1.3 s, under the battle-cry overlay).
-  roll() {
+  roll(t) {
     [[0, .7], [.2, .55], [.38, .75], [.53, .6], [.66, .8], [.77, .65], [.86, .85], [.94, .75], [1.01, .9]]
-      .forEach(([d, v]) => sfx.drum(d, v));
-    sfx.drum(1.2, 1.35); sfx.drum(1.21, 0.9);
+      .forEach(([d, v]) => syn.drum(t + d, v));
+    syn.drum(t + 1.2, 1.35); syn.drum(t + 1.21, 0.9);
   },
-  bad() { tone(110, 70, 0.25, 'sawtooth', 0.12); },
+  bad(t) { syn.tone(110, 70, 0.25, 'sawtooth', 0.12, t); },
   // Chiêng: a low drum under an inharmonic, beating gong body; high partials die first.
-  gong(d = 0) {
-    const c = audio(); if (!c) return;
-    const t = c.currentTime + AHEAD + d, f = 128;
-    sfx.drum(d, 1.1);
+  gong(t) {
+    const f = 128;
+    syn.drum(t, 1.1);
     [[1, 0.34, 6], [1.012, 0.24, 5.5], [1.98, 0.2, 4.2], [2.01, 0.12, 4], [2.76, 0.13, 3], [3.95, 0.09, 2.2],
      [5.43, 0.06, 1.6], [6.9, 0.04, 1.1], [8.6, 0.03, 0.8]]
-      .forEach(([r, a, dec]) => voice(c, osc(c, 'sine', f * r * 1.015, f * r, t, 0.4), t, a, 0.006, dec, 0.55));
-    noise(c, t, 950, 1.2, 0.3, 0.09, 0.4);
+      .forEach(([r, a, dec]) => syn.voice(syn.osc('sine', f * r * 1.015, f * r, t, 0.4), t, a, 0.006, dec, 0.55));
+    syn.noise(t, 950, 1.2, 0.3, 0.09, 0.4);
+  },
+  stick(t, v) { // a dry stick tick for the vote countdown
+    syn.noise(t, 2600, 1.2, 1.4 * v, 0.05, 0.1);
+    syn.voice(syn.osc('triangle', 480, 220, t, 0.04), t, 0.7 * v, 0.002, 0.07, 0.05);
+  },
+  sub(t, f0, f1, dur, v) { syn.voice(syn.osc('sine', f0, f1, t, dur), t, v, 0.01, dur, 0.1); },
+  pulse(t, v) { for (let i = 0; i < 3; i++) syn.noise(t + i * 0.2, 500 + i * 450, 2.5, 0.35 * v, 0.16, 0.2); }
+};
+
+/* Cue sheet (docs/09 §4). Sample versions first, then the synth fallback with the same names.
+   Gains are the measured mix: see docs/09 §6. */
+const BIG = 'taiko_manh', MID = 'taiko_vua', DON = 'taiko_don';
+const CUES = {
+  // Horn call, then three big-drum strikes.
+  start(t) { horn(t, 0.9, { dur: 2.4 }); [[1.5, .8], [2.2, .9], [2.9, 1]].forEach(([d, v]) => ens(BIG, t + d, v)); },
+  // Short horn, then a war-drum fill (~1 s) that lands on a big stroke.
+  fight(t) { horn(t, 0.8, { dur: 1.0 }); ens(DON, t + 0.55, 0.9, { light: true, dur: 1.45, cut: true }); },
+  // Vote countdown, last 5 s: five sticks speeding up and getting louder. Presenter only.
+  tick(t) { [[0, .3], [1.5, .4], [2.8, .55], [3.8, .7], [4.5, .9]].forEach(([d, v]) => syn.stick(t + d, v)); },
+  // "Hết giờ": one gong, then silence until the pick. Presenter only.
+  timeup(t) { gong(t, 0.8); },
+  // Ensemble hit, the accelerating roll, a huge stroke and a gong that rings out.
+  correct(t) { ens(BIG, t, 0.9); roll(t, ROLL, 0.85); ens(BIG, t + 1.2, 1); gong(t + 1.2, 0.9); },
+  // Muffled low drum and a short, dissonant gong.
+  wrong(t) {
+    play(MID, t, { gain: 0.5, rate: 0.6, lp: 500, send: 0.3 });
+    gong(t + 0.05, 0.45, { rates: [1, 1.06], sub: false, cap: [0.4, 1.8] });
+  },
+  // Surrender cascade: one hit per tile, rising in pitch and level.
+  tile(t, i, n) {
+    const p = n > 1 ? i / (n - 1) : 1;
+    play(MID, t, { gain: 0.3 + 0.45 * p, rate: 0.8 + 0.5 * p, send: 0.25 });
+    syn.skin(t, 0.15 + 0.2 * p);
+  },
+  end(t) { ens(BIG, t + 0.1, 0.9); gong(t + 0.1, 1); },
+  submitted(t) { gong(t, 0.9); roll(t, [[.1, .5], [.25, .6], [.38, .7], [.5, .8]], 0.85); },
+  crown(t, n) {
+    if (n === 0) [[0, .85], [.85, .95], [1.7, 1]].forEach(([d, v]) => ens(BIG, t + d, v)); // three slow ceremonial strokes
+    else if (n === 2) { ens(BIG, t, 1); ens(MID, t, 0.45, { rate: 0.8, body: false }); horn(t, 0.7, { dur: 5 }); gong(t, 0.8); } // tutti
+    else if (n === 3) { gong(t, 0.8); gong(t + 0.55, 0.85, { rates: [0.94], sub: false }); gong(t + 1.1, 1, { rates: [0.88] }); } // three gongs, staggered
+    else if (n === 7) ens(BIG, t, 1); // closing stroke
+  },
+  finale(t, n) {
+    if (n === 0) play('chieng_nguoc', t, { gain: 0.9, send: 0.4 }); // time rewinding
+    else if (n === 1) ens(BIG, t, 0.9);
+    else if (n === 2) { ens(BIG, t, 1, { rate: 0.8 }); syn.sub(t, 80, 45, 1.2, 0.4); syn.pulse(t + 0.1, 0.8); } // ancient turns modern
+    else if (n === 3) { ens(BIG, t, 1); syn.sub(t, 85, 40, 1.8, 0.5); gong(t, 0.9); } // hybrid impact
+    else if (n === 5) ens(DON, t, 0.95); // war-drum call to arms
+    else if (n === 6) { ens(BIG, t, 1); ens(MID, t, 0.45, { rate: 0.8, body: false }); horn(t, 0.5, { dur: 3 }); syn.sub(t, 85, 40, 1.8, 0.3); gong(t, 0.85); } // seal: stamp, tutti, gong
   }
 };
+const SYN_CUES = {
+  start: t => syn.drum(t), fight: t => syn.drum(t),
+  tick: CUES.tick, timeup: t => syn.gong(t),
+  correct: t => syn.roll(t), wrong: t => syn.bad(t),
+  tile: (t, i) => { if (i % 3 === 0) syn.drum(t); }, end: t => syn.gong(t), submitted: t => syn.roll(t),
+  crown: (t, n) => { if (n === 0) syn.roll(t); else if (n === 3) syn.gong(t); else if (n === 2 || n === 7) syn.drum(t); },
+  finale: (t, n) => { if (n === 3) syn.gong(t); else if (n === 6) { syn.drum(t); syn.gong(t); } else if (n === 1 || n === 2 || n === 5) syn.drum(t); }
+};
+
+async function loadSamples() {
+  if (sampleState === 'loading') return;
+  sampleState = 'loading';
+  try {
+    const c = ensureCtx(); // created suspended; the first gesture resumes it
+    await Promise.all(SAMPLE_FILES.map(async n => {
+      if (buf[n]) return;
+      const r = await fetch('sound/' + n + '.mp3', { signal: AbortSignal.timeout ? AbortSignal.timeout(20000) : undefined });
+      if (!r.ok) throw new Error(n + ': HTTP ' + r.status);
+      buf[n] = await c.decodeAudioData(await r.arrayBuffer());
+    }));
+    sampleState = 'ok';
+  } catch { sampleState = 'failed'; }
+  syncSnd();
+}
+const sfx = {
+  cue(name, a, b) {
+    try {
+      const c = audio(); if (!c) return;
+      const t = c.currentTime + AHEAD, s = sc();
+      if (name === 'crown' || name === 'finale') { fade(s.step, 0.12); s.step = null; } // Enter-skip: end the previous step's drums
+      (sampleState === 'ok' ? CUES : SYN_CUES)[name]?.(t, a, b);
+    } catch { /* sound must never break the game */ }
+  },
+  scene() { try { killScene(); } catch { /* never throw */ } },
+  silence() { try { killScene(); } catch { /* never throw */ } }
+};
+// Tab hidden: fade out and suspend. Visible again: resume and restore the level (unless muted).
+document.addEventListener('visibilitychange', () => {
+  try {
+    if (!ac) return;
+    if (document.hidden) { killScene(); syncMute(); setTimeout(() => { if (document.hidden) ac.suspend().catch(() => {}); }, 250); }
+    else { ac.resume().catch(() => {}); syncMute(); }
+  } catch { /* never throw */ }
+});
+// The first key or click wakes the context (browsers keep it suspended until then).
+const unlock = () => { try { if (ac && !state.muted && !document.hidden && ac.state === 'suspended') ac.resume().catch(() => {}); } catch { /* never throw */ } };
+addEventListener('pointerdown', unlock, true); addEventListener('keydown', unlock, true);
+// Measurement hook for the offline renders in docs/09 §6 (only with ?soundtest).
+if (new URLSearchParams(location.search).has('soundtest')) {
+  window.__sound = {
+    ready: async () => { await loadSamples(); return sampleState; },
+    // script: [[atSeconds, cueName | '@scene', a, b], ...] -> { sr, data: [L, R] } rendered through the real bus
+    async render(script, seconds, { clip = true, seed = 1 } = {}) {
+      const sr = 44100, off = new OfflineAudioContext(2, Math.ceil(sr * seconds), sr);
+      const saved = { ac, bus, scene, rnd, muted: state.muted };
+      try {
+        ac = off; bus = makeBus(off, { clip }); scene = null; rnd = seeded(seed); state.muted = false;
+        const run = ([, name, a, b]) => (name === '@scene' ? sfx.scene() : sfx.cue(name, a, b));
+        const at = new Map(); // one suspend per render quantum, however many cues start there
+        script.forEach(s => { const q = Math.round(s[0] * sr / 128) * 128 / sr; at.set(q, [...(at.get(q) || []), s]); });
+        at.forEach((list, q) => { if (q <= 0) list.forEach(run); else off.suspend(q).then(() => { list.forEach(run); off.resume(); }); });
+        const out = await off.startRendering();
+        return { sr, data: [out.getChannelData(0).slice(), out.getChannelData(1).slice()] };
+      } finally { ({ ac, bus, scene, rnd } = saved); state.muted = saved.muted; }
+    }
+  };
+}
 
 /* ---------- leaderboard client ----------
    The mode is decided once, at load: 'server' when /api/leaderboard exists (even if it is briefly failing),
@@ -335,9 +580,11 @@ function startPolling(render) {
 function stopPolling() { if (poll) clearInterval(poll); poll = null; }
 
 /* ---------- navigation ---------- */
-function clearTimers() { timers.forEach(clearTimeout); timers = []; }
+let voteT = []; // the vote bar's timers: rescheduled on every battle render so sound follows the visible bar
+function clearVote() { voteT.forEach(clearTimeout); voteT = []; }
+function clearTimers() { timers.forEach(clearTimeout); timers = []; clearVote(); }
 function go(scene, extra = {}) {
-  clearTimers(); stopPolling();
+  clearTimers(); stopPolling(); sfx.scene();
   if (scene === 'board' && state.scene !== 'board') state.prev = state.scene;
   Object.assign(state, extra, { scene });
   render(); $main.scrollTop = 0;
@@ -546,8 +793,7 @@ function setStep(n) {
     const at = +el.dataset.at, until = el.dataset.until == null ? Infinity : +el.dataset.until;
     el.classList.toggle('on', n >= at && n <= until);
   });
-  if (state.scene === 'crown') { if (n === 3) sfx.gong(); else if (n > 0) sfx.drum(); }
-  if (state.scene === 'finale') { if (n === 3) sfx.gong(); else if (n === 6) { sfx.drum(); sfx.gong(); } else if (n >= 4) sfx.drum(); }
+  if (state.scene === 'crown' || state.scene === 'finale') sfx.cue(state.scene, n);
 }
 function stage(root, max, gap) {
   stepRoot = root; stepMax = max; step = -1; advance(gap);
@@ -566,14 +812,18 @@ function render() {
   header();
   $main.innerHTML = scenes[state.scene]();
   if (state.scene === 'battle' && !state.resolved) {
-    timers.push(setTimeout(() => { const m = document.getElementById('vote-msg'); if (m) m.textContent = 'Hết giờ bỏ phiếu. Chốt đáp án!'; }, 20000));
+    clearVote();
+    voteT.push(setTimeout(() => { const m = document.getElementById('vote-msg'); if (m) m.textContent = 'Hết giờ bỏ phiếu. Chốt đáp án!'; }, 20000));
+    if (PRESENTER) { voteT.push(setTimeout(() => sfx.cue('tick'), 15000)); voteT.push(setTimeout(() => sfx.cue('timeup'), 20000)); }
   }
   if (state.scene === 'surrender') {
-    [...$main.querySelectorAll('.tile.pending')].forEach((t, i) => timers.push(setTimeout(() => {
-      t.classList.remove('pending'); t.classList.add('won', 'fall'); state.done[t.dataset.id] = 'won'; header(); if (i % 3 === 0) sfx.drum();
+    const pending = [...$main.querySelectorAll('.tile.pending')];
+    pending.forEach((t, i) => timers.push(setTimeout(() => {
+      t.classList.remove('pending'); t.classList.add('won', 'fall'); state.done[t.dataset.id] = 'won'; header();
+      sfx.cue('tile', i, pending.length); if (i === pending.length - 1) sfx.cue('end');
     }, 450 + i * 380)));
   }
-  if (state.scene === 'crown') { sfx.roll(); stage(document.getElementById('crown'), 7); }
+  if (state.scene === 'crown') stage(document.getElementById('crown'), 7);
   if (state.scene === 'finale') stage(document.getElementById('fin'), 6);
   if (state.scene === 'tally' || state.scene === 'board') {
     startPolling(d => {
@@ -597,7 +847,7 @@ function wireSignForm() {
     try {
       const res = await lb.submit({ name: name.value, points: points(), timeSec: timeSec(), runId: state.runId, code: code.value });
       try { localStorage.setItem('colaudi.name', name.value.trim()); localStorage.setItem('colaudi.code', code.value.trim()); } catch { /* storage blocked */ }
-      state.submitted = res; sfx.roll(); render();
+      state.submitted = res; sfx.cue('submitted'); render();
     } catch (err) {
       msg.className = 'msg err'; msg.textContent = err.message; btn.disabled = false;
     }
@@ -612,11 +862,11 @@ function pick(i) {
     if (state.mode === 'full' && wins() >= BATTLES) state.finishedAt = Date.now();
     clearTimers(); render(); shout();
   } else {
-    state.wrong.push(i); sfx.bad(); render();
+    state.wrong.push(i); sfx.cue('wrong'); render();
   }
 }
 function shout() {
-  sfx.roll();
+  sfx.cue('correct');
   const fx = document.createElement('div');
   fx.className = 'cryfx';
   fx.innerHTML = reed() + '<div class="word">“Cờ Lau” đi!</div>';
@@ -629,12 +879,12 @@ document.addEventListener('click', e => {
   const b = e.target.closest('[data-act]'); if (!b) return;
   const a = b.dataset.act;
   if (a === 'start-quick' || a === 'start-full') {
-    sfx.drum();
     go('intro', { ...fresh(), muted: state.muted, mode: a === 'start-quick' ? 'quick' : 'full', startedAt: Date.now(), runId: newRunId() });
+    sfx.cue('start'); // after go(): a cue fired before it would belong to the scene being left
     if (state.mode === 'full') lb.start(state.runId);
   }
   else if (a === 'map') go('map');
-  else if (a === 'fight') { sfx.drum(); go('battle', { cur: b.dataset.id, wrong: [], resolved: false }); }
+  else if (a === 'fight') { go('battle', { cur: b.dataset.id, wrong: [], resolved: false }); sfx.cue('fight'); }
   else if (a === 'pick') pick(+b.dataset.i);
   else if (a === 'back') go(state.prev && state.prev !== 'board' ? state.prev : 'title');
   else if (['surrender', 'tally', 'crown', 'finale', 'title', 'board'].includes(a)) go(a);
@@ -642,8 +892,16 @@ document.addEventListener('click', e => {
 document.getElementById('home').onclick = e => { e.currentTarget.blur(); go('title'); };
 document.getElementById('boardBtn').onclick = e => { e.currentTarget.blur(); go('board'); };
 const sndBtn = document.getElementById('snd');
-const syncSnd = () => { sndBtn.textContent = 'Âm thanh: ' + (state.muted ? 'tắt' : 'bật'); syncMute(); };
-sndBtn.onclick = () => { sndBtn.blur(); state.muted = !state.muted; syncSnd(); };
+// Label precedence: muted wins; otherwise a failed sample load is shown, never silent (the synth plays instead).
+const syncSnd = () => { sndBtn.textContent = 'Âm thanh: ' + (state.muted ? 'tắt' : sampleState === 'failed' ? 'bản tổng hợp (mẫu lỗi) · bấm để tải lại' : 'bật'); syncMute(); };
+function setMuted(v) {
+  state.muted = v;
+  try { localStorage.setItem(MUTE_KEY, v ? '1' : '0'); } catch { /* storage blocked: the choice just is not remembered */ }
+  if (v) sfx.silence();
+  syncSnd();
+}
+// In the fallback state a click retries the load; M still toggles mute.
+sndBtn.onclick = () => { sndBtn.blur(); if (!state.muted && sampleState === 'failed') loadSamples(); else setMuted(!state.muted); };
 
 document.addEventListener('keydown', e => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
@@ -660,13 +918,16 @@ document.addEventListener('keydown', e => {
     else if (['battle', 'surrender', 'tally'].includes(state.scene)) go('map');
   } else if (k === 'l') { if (state.scene !== 'board') go('board'); }
   else if (k === 's') { if (state.mode !== 'full' && ['title', 'intro', 'map', 'battle'].includes(state.scene)) go(state.mode === 'full' && wins() >= BATTLES ? 'tally' : wins() >= BATTLES ? 'crown' : 'surrender'); }
-  else if (k === 'm') { state.muted = !state.muted; syncSnd(); }
+  else if (k === 'm') setMuted(!state.muted);
 });
 
 /* ---------- boot ---------- */
 function start(data) {
   if (data && data.scene) state = Object.assign(fresh(), data);
+  try { const m = localStorage.getItem(MUTE_KEY); if (m !== null) state.muted = m === '1'; } catch { /* storage blocked */ }
   syncSnd(); lb.probe().finally(() => { if (state.scene === 'tally') render(); }); render();
+  // Samples: the presenter loads at once; players wait for the first leaderboard poll so the two never compete.
+  if (PRESENTER) loadSamples(); else lb.probe().finally(loadSamples);
 }
 window.claude?.hot?.snapshot?.(() => ({ ...state, scene: ['crown', 'finale'].includes(state.scene) ? 'map' : state.scene }));
 window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
