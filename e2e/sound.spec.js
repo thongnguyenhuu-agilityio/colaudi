@@ -157,15 +157,16 @@ test('a hidden tab fades out and suspends the audio, a visible tab resumes it', 
 });
 
 // Offline render of the real coronation (docs/09 "Red-team review 2"): one climax at step 2, and the text breathes.
-// On the 42a5683 build the step-2/3 gongs rang under steps 4 to 6 and this failed. Steps are GAP.crown (1.5 s) apart.
+// On the 42a5683 build the step-2/3 gongs rang under steps 4 to 6 and this failed. Steps are rendered at the real GAP.crown.
 test('the coronation has one climax at step 2 and is quiet under steps 5 and 6', async ({ page }) => {
   await page.goto('/?presenter&soundtest');
   expect(await page.evaluate(() => window.__sound.ready())).toBe('ok');
   const r = await page.evaluate(async () => {
-    const script = [[0, '@scene'], ...Array.from({ length: 8 }, (_, i) => [i * 1.5, 'crown', i])];
+    const g = window.__sound.gap.crown / 1000;
+    const script = [[0, '@scene'], ...Array.from({ length: 8 }, (_, i) => [i * g, 'crown', i])];
     const { data, sr } = await window.__sound.render(script, 24);
     const level = (a, b) => { let p = 0, s = 0, n = 0; for (let i = Math.round(a * sr); i < Math.round(b * sr); i++) { p = Math.max(p, Math.abs(data[0][i])); s += data[0][i] ** 2; n++; } return [p, Math.sqrt(s / n)]; };
-    return Array.from({ length: 8 }, (_, i) => level(i * 1.5 + 0.1, i * 1.5 + 1.5));
+    return Array.from({ length: 8 }, (_, i) => level(i * g + 0.1, i * g + g));
   });
   const peaks = r.map(x => x[0]), rms = r.map(x => x[1]);
   expect(peaks[2]).toBe(Math.max(...peaks)); // the tutti is the loudest step
@@ -187,9 +188,11 @@ test('a touchend resumes a suspended audio context', async ({ page }) => {
     const resume = AudioContext.prototype.resume;
     AudioContext.prototype.resume = function () { window.__resumes++; return resume.call(this); };
     Object.defineProperty(AudioContext.prototype, 'state', { get() { return 'suspended'; }, configurable: true });
+    const Orig = window.AudioContext;
+    window.AudioContext = class extends Orig { constructor(...a) { super(...a); window.__ctx = this; } };
   });
   await page.goto('/?presenter'); // the presenter page creates its context at load to decode the samples
-  await expect.poll(() => page.evaluate(() => document.getElementById('snd')?.textContent || document.body.textContent.includes('Âm thanh'))).toBeTruthy();
+  await page.waitForFunction(() => window.__ctx);
   const before = await page.evaluate(() => window.__resumes);
   await page.evaluate(() => document.body.dispatchEvent(new Event('touchend', { bubbles: true })));
   expect(await page.evaluate(() => window.__resumes)).toBeGreaterThan(before);

@@ -448,10 +448,10 @@ const CUES = {
   end(t) { ens(BIG, t + 0.1, 0.9); gong(t + 0.1, 1); },
   submitted(t) { gong(t, 0.9); roll(t, [[.1, .5], [.25, .6], [.38, .7], [.5, .8]], 0.85); },
   // Coronation: one arc with ONE climax (step 2). Steps 0-1 are sparse strokes, step 3 a single accent, steps 4-6 are
-  // silent so the text breathes (the step-2 gong rings on, starts to fade at 2 s, is ducked by step 3 and gone by 6.5 s), step 7 closes.
+  // silent so the text breathes (the step-2 gong rings on under them, ducked by step 3), step 7 closes.
   crown(t, n) {
     const B = { bright: true };
-    if (n === 0) { ens(BIG, t, 0.95, B); ens(BIG, t + 0.75, 1.1, B); } // two strokes, the second before step 1
+    if (n === 0) { ens(BIG, t, 0.95, B); ens(BIG, t + GAP.crown / 2000, 1.1, B); } // two strokes, the second half-way to step 1
     else if (n === 1) ens(MID, t, 0.95, B); // one medium stroke
     else if (n === 2) { ens(BIG, t, 1, B); horn(t, 0.7, { dur: 3.5 }); gong(t, 0.9, { bright: true, cap: [2, 6.5] }); } // tutti: the climax
     else if (n === 3) { duck(t, 0.15); ens(BIG, t + 0.05, 1.2, B); } // one accent over the ringing gong
@@ -520,11 +520,12 @@ document.addEventListener('visibilitychange', () => {
 // The first key or click wakes the context (browsers keep it suspended until then).
 const unlock = () => { try { if (ac && !state.muted && !document.hidden && ac.state !== 'running') ac.resume().catch(() => {}); } catch { /* never throw */ } };
 // iOS only grants audio on touchend/click (pointerdown is not a user activation there).
-['pointerdown', 'touchend', 'click', 'keydown'].forEach(e => addEventListener(e, unlock, true));
+['pointerdown', 'touchend', 'click', 'keydown'].forEach(e => addEventListener(e, unlock, { capture: true, passive: true }));
 // Measurement hook for the offline renders in docs/09 §6 (only with ?soundtest).
 if (PRESENTER && new URLSearchParams(location.search).has('soundtest')) {
   window.__sound = {
     ready: async () => { await loadSamples(); return sampleState; },
+    get gap() { return GAP; }, // a getter: GAP is declared further down the module
     // script: [[atSeconds, cueName | '@scene', a, b], ...] -> { sr, data: [L, R] } rendered through the real bus
     async render(script, seconds, { clip = true, seed = 1 } = {}) {
       const sr = 44100, off = new OfflineAudioContext(2, Math.ceil(sr * seconds), sr);
@@ -832,12 +833,12 @@ function setStep(n) {
   });
   if (state.scene === 'crown' || state.scene === 'finale') sfx.cue(state.scene, n);
 }
-function stage(root, max, gap) {
-  stepRoot = root; stepMax = max; step = -1; advance(gap);
+function stage(root, max) {
+  stepRoot = root; stepMax = max; step = -1; advance();
 }
-// Time between reveals. The owner found 2.6 s / 2.4 s too slow to read along; Enter still skips ahead.
+// Time between reveals (ms); Enter skips ahead.
 const GAP = { crown: 1500, finale: 1400 };
-function advance(gap = GAP[state.scene] || GAP.finale) {
+function advance(gap = GAP[state.scene]) {
   clearTimers();
   const next = step + 1;
   if (next > stepMax) return false;
@@ -910,10 +911,8 @@ function shout() {
   fx.className = 'cryfx';
   fx.innerHTML = reed() + '<div class="word">“Cờ Lau” đi!</div>';
   document.body.appendChild(fx);
-  // Remove when the reed has crossed (3 s on desktop, 1.5 s on phones); the timeout is a safety net.
-  const done = () => fx.remove();
-  fx.querySelector('.reed').addEventListener('animationend', done, { once: true });
-  setTimeout(done, 4000);
+  // Remove once the reed has crossed; the duration comes from the CSS (--cry-reed, shorter on phones).
+  setTimeout(() => fx.remove(), parseFloat(getComputedStyle(fx).getPropertyValue('--cry-reed')) * 1000 + 100);
 }
 
 /* ---------- input ---------- */

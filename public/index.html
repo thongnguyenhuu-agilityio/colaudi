@@ -148,10 +148,11 @@ button.tile:hover:not(:disabled) { border-color: var(--gold); background: var(--
 .tip b { color: var(--gold); }
 
 /* Victory cry overlay */
-.cryfx { position: fixed; inset: 0; pointer-events: none; display: grid; place-items: center; z-index: 5; }
-.cryfx .word { font-family: var(--display); font-style: italic; font-weight: 700; font-size: clamp(4.4rem, 15vw, 12rem); color: var(--cinnabar); text-shadow: 5px 5px 0 #000, 0 0 40px rgba(0,0,0,.6); animation: shout 2.2s ease-out forwards; }
-/* Slow enough on a big screen to see the reed cross; phones keep the quick 1.5 s sweep (see the 820px block). */
-.cryfx .reed { position: absolute; left: -24vw; bottom: 6vh; height: 66vh; animation: sweep 3s cubic-bezier(.35, .1, .65, .9) forwards; }
+/* Durations live here so the 820px block and shout() in game.js read one source. */
+.cryfx { --cry-reed: 3s; --cry-word: 2.2s; position: fixed; inset: 0; pointer-events: none; display: grid; place-items: center; z-index: 5; }
+.cryfx .word { font-family: var(--display); font-style: italic; font-weight: 700; font-size: clamp(4.4rem, 15vw, 12rem); color: var(--cinnabar); text-shadow: 5px 5px 0 #000, 0 0 40px rgba(0,0,0,.6); animation: shout var(--cry-word) ease-out forwards; }
+/* Slow enough on a big screen to see the reed cross; phones keep a quick sweep (820px block). */
+.cryfx .reed { position: absolute; left: -24vw; bottom: 6vh; height: 66vh; animation: sweep var(--cry-reed) cubic-bezier(.35, .1, .65, .9) forwards; }
 @keyframes shout { 0% { transform: scale(.4) rotate(-6deg); opacity: 0; } 25% { transform: scale(1.08) rotate(-3deg); opacity: 1; } 70% { opacity: 1; } 100% { transform: scale(1) rotate(-3deg); opacity: 0; } }
 @keyframes sweep { from { transform: translateX(0) rotate(-10deg); } to { transform: translateX(145vw) rotate(10deg); } }
 
@@ -273,8 +274,7 @@ button.tile:hover:not(:disabled) { border-color: var(--gold); background: var(--
 .made { font-size: .72em; color: var(--dim); }
 
 @media (max-width: 820px) {
-  .cryfx .reed { animation-duration: 1.5s; }
-  .cryfx .word { animation-duration: 1.5s; }
+  .cryfx { --cry-reed: 1.5s; --cry-word: 1.5s; }
   .title, .battle, .tally, .wall, .crown { grid-template-columns: 1fr; }
   .fin { grid-template-columns: 1fr; grid-template-areas: "ago" "morph" "born" "decree" "call" "row"; min-height: 0; gap: 1.2rem; }
   .decree { padding: 1.2rem 1.2rem 1rem; }
