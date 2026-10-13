@@ -94,41 +94,42 @@ const points = () => totalPoints(state.wrongs);
 const timeSec = () => Math.round(((state.finishedAt || Date.now()) - state.startedAt) / 1000);
 const newRunId = () => (crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2, 10));
 
-/* ---------- the reed flag: stem, nodes, blade leaves, and a silky panicle blown downwind ---------- */
+/* ---------- the reed flag: an upright stem, nodes, blade leaves, and a silky panicle standing like a banner in the wind ---------- */
 function rng(seed) { return () => { seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 const REED = (() => {
   const r = rng(968), f = n => n.toFixed(1);
-  const top = { x: 112, y: 92 };
-  // Stem: slightly bent culm with nodes.
-  const stem = `M98 438 C 101 360, 95 270, 104 190 S 110 120, ${top.x} ${top.y}`;
-  const nodes = [[99, 392], [99, 318], [101, 246], [106, 172]];
-  // Leaves: long, narrow blades from each node, arching then drooping at the tip.
+  const top = { x: 110, y: 168 };
+  // Stem: a straight, upright culm with nodes (a very slight lean downwind).
+  const stem = `M98 438 C 100 370, 101 300, 104 240 S 108 190, ${top.x} ${top.y}`;
+  const nodes = [[99, 396], [100, 336], [102, 276], [106, 214]];
   const leaf = (x, y, dir, len, lift) => {
     const tx = x + dir * len, ty = y - lift + len * 0.32;
     const c1x = x + dir * len * 0.35, c1y = y - lift * 1.35;
     return `M${f(x)} ${f(y)} Q${f(c1x)} ${f(c1y - 3)} ${f(tx)} ${f(ty)} Q${f(c1x + dir * 4)} ${f(c1y + 5)} ${f(x)} ${f(y + 7)}Z`;
   };
-  const leaves = [leaf(99, 392, -1, 86, 34), leaf(99, 318, 1, 92, 40), leaf(101, 246, -1, 80, 44), leaf(106, 172, 1, 70, 38)];
-  // Panicle: a long, loose plume. The rachis arcs up then droops downwind; side branches carry long silky hairs.
-  const P = t => { const S = top, C = { x: 178, y: 30 }, E = { x: 252, y: 160 }; const u = 1 - t;
+  const leaves = [leaf(99, 396, -1, 84, 30), leaf(100, 336, 1, 88, 40), leaf(102, 276, -1, 76, 44), leaf(106, 214, 1, 66, 40)];
+  // Panicle: stands up like a banner on its pole; the rachis rises and only its tip leans downwind,
+  // the side branches point up and stream to the right, widest low, tapering to a tip.
+  const C = { x: 118, y: 80 }, E = { x: 160, y: 10 };
+  const P = t => { const S = top, u = 1 - t;
     return { x: u * u * S.x + 2 * u * t * C.x + t * t * E.x, y: u * u * S.y + 2 * u * t * C.y + t * t * E.y }; };
-  const rachis = `M${top.x} ${top.y} Q178 30 252 160`;
+  const rachis = `M${top.x} ${top.y} Q${C.x} ${C.y} ${E.x} ${E.y}`;
   let branches = '', hairs = '', hairs2 = '';
   const N = 34;
   for (let i = 0; i < N; i++) {
-    const t = 0.03 + (i / (N - 1)) * 0.95, p = P(t), q = P(Math.min(t + 0.01, 1));
+    const t = 0.02 + (i / (N - 1)) * 0.96, p = P(t), q = P(Math.min(t + 0.01, 1));
     const base = Math.atan2(q.y - p.y, q.x - p.x);
     for (const side of [-1, 1]) {
-      const len = (18 + 38 * Math.sin(Math.PI * Math.min(0.15 + t, 1))) * (0.7 + r() * 0.55);
-      const ang = base + side * (0.22 + r() * 0.38) + 0.42; // trails downwind, sags with gravity
-      const ex = p.x + Math.cos(ang) * len, ey = p.y + Math.sin(ang) * len + len * 0.22;
-      const cx = p.x + Math.cos(ang) * len * 0.55, cy = p.y + Math.sin(ang) * len * 0.45;
+      const len = (13 + 50 * Math.sin(Math.PI * (0.16 + 0.8 * t))) * (0.75 + r() * 0.45);
+      const ang = base + side * (0.28 + r() * 0.34) + 0.5; // up and downwind
+      const ex = p.x + Math.cos(ang) * len, ey = p.y + Math.sin(ang) * len + len * 0.05;
+      const cx = p.x + Math.cos(ang) * len * 0.5, cy = p.y + Math.sin(ang) * len * 0.5 - 2;
       branches += `M${f(p.x)} ${f(p.y)} Q${f(cx)} ${f(cy)} ${f(ex)} ${f(ey)}`;
       const H = 11;
       for (let k = 1; k <= H; k++) {
         const s = k / H, hx = p.x + (ex - p.x) * s, hy = p.y + (ey - p.y) * s;
         for (const hs of [-1, 1]) {
-          const ha = ang + hs * (0.3 + r() * 0.55) + 0.3, hl = 6 + r() * 9 * (1 - s * 0.35);
+          const ha = ang + hs * (0.25 + r() * 0.5) + 0.25, hl = 6 + r() * 9 * (1 - s * 0.35);
           const bend = hs * (1.5 + r() * 2);
           const seg = `M${f(hx)} ${f(hy)} q${f(Math.cos(ha) * hl * 0.5 - Math.sin(ha) * bend)} ${f(Math.sin(ha) * hl * 0.5 + Math.cos(ha) * bend)} ${f(Math.cos(ha) * hl)} ${f(Math.sin(ha) * hl)}`;
           if (r() < 0.3) hairs2 += seg; else hairs += seg;
@@ -136,17 +137,19 @@ const REED = (() => {
       }
     }
   }
-  return `<path d="${stem}" fill="none" stroke="#b39260" stroke-width="5" stroke-linecap="round"/>
+  return `<g class="stand">
+    <path d="${stem}" fill="none" stroke="#b39260" stroke-width="5" stroke-linecap="round"/>
     <path d="${stem}" fill="none" stroke="#d8bf8c" stroke-width="1.4" stroke-linecap="round" opacity=".6" transform="translate(-1.2 0)"/>
     ${nodes.map(([x, y]) => `<rect x="${x - 4}" y="${y - 2}" width="8" height="4" rx="2" fill="#8a6c3f"/>`).join('')}
-    <g>${leaves.map((d, i) => `<path d="${d}" fill="${i % 2 ? '#8e8f55' : '#767a45'}" stroke="#5f6337" stroke-width=".6"/>`).join('')}</g>
+    <g>${leaves.map((d, i) => `<path class="leaf" d="${d}" fill="${i % 2 ? '#8e8f55' : '#767a45'}" stroke="#5f6337" stroke-width=".6"/>`).join('')}</g>
     <g class="plume">
       <path d="${rachis}" fill="none" stroke="#c9b18c" stroke-width="2.2" stroke-linecap="round"/>
       <path d="${branches}" fill="none" stroke="#d3bf9f" stroke-width=".9" stroke-linecap="round" opacity=".85"/>
       <path class="hair" d="${hairs}" fill="none" stroke="#f5efe4" stroke-width=".8" stroke-linecap="round" opacity=".5"/>
       <path class="hair" d="${hairs2}" fill="none" stroke="#dcc6b2" stroke-width=".8" stroke-linecap="round" opacity=".45"/>
-    </g>`;
+    </g></g>`;
 })();
+
 const reed = (cls = '') => `<svg class="reed ${cls}" viewBox="0 0 310 440" aria-hidden="true">${REED}</svg>`;
 
 /* ---------- the royal seal on the decree: an original carved seal reading CLAU / DE (Cờ Lau Đi → Claude) ---------- */

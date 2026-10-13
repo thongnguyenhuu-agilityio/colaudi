@@ -74,9 +74,12 @@ kbd { font-family: var(--mono); font-size: .92em; border: 1px solid var(--line);
 
 /* Reed flag (cờ lau): drawn in game.js from the plant's real structure */
 .reed { display: block; overflow: visible; }
-.reed .plume { transform-box: view-box; transform-origin: 112px 92px; animation: sway 3.6s ease-in-out infinite alternate; }
+/* The whole reed sways from its root; the plume adds a small lag on top, so it never looks hinged or broken. */
+.reed .stand { transform-box: view-box; transform-origin: 98px 438px; animation: stand 4.4s ease-in-out infinite alternate; }
+.reed .plume { transform-box: view-box; transform-origin: 110px 168px; animation: flag 2.9s ease-in-out infinite alternate; }
 .reed .plume .hair { animation: shimmer 3.2s ease-in-out infinite alternate; }
-@keyframes sway { from { transform: rotate(-3.5deg) skewX(2deg); } to { transform: rotate(4deg) skewX(-3deg); } }
+@keyframes stand { from { transform: rotate(-1.4deg); } to { transform: rotate(2.2deg); } }
+@keyframes flag { from { transform: rotate(-1.5deg) skewX(1.5deg); } to { transform: rotate(3deg) skewX(-2.5deg); } }
 @keyframes shimmer { from { opacity: .82; } to { opacity: 1; } }
 .reed.flip { transform: scaleX(-1); }
 
