@@ -775,7 +775,7 @@ const scenes = {
       <p class="born" data-at="3">Năm 2023, Claude ra đời.</p>
       <article class="decree" data-at="4">
         <header><span>Hoa Lư truyền hịch</span><h3>Hịch Cờ Lau</h3></header>
-        <p>Từng nghe: thuở Hoa Lư, trẻ chăn trâu bẻ lau làm cờ mà dựng nên nghiệp đế. Quân chẳng cốt ở đông, cốt ở luyện tập trước khi ra trận.</p>
+        <p>Từng nghe: thuở Hoa Lư, trẻ chăn trâu bẻ lau làm cờ mà dựng nên nghiệp đế. Quân dù nhiều hay ít, thắng bại đều cốt ở luyện tập trước khi ra trận.</p>
         <p>Nay mười hai sứ quân lại nổi: code rối như tơ vò, lỗi ẩn như bóng ma, hạn chót dồn như thác lũ. Bao bữa quên ăn, bao đêm thức trắng, chỉ mong sớm dẹp yên bờ cõi.</p>
         <p class="address" data-at="5">Hỡi tướng sỹ!</p>
         <p data-at="5">Chúng ta chớ lấy việc gõ tay từng dòng làm siêng năng, chớ lấy việc vá lỗi qua loa làm công trạng, chớ vì quen lối cũ mà ngại binh pháp mới. Giặc đã tới ải, lẽ nào khoanh tay mà nhìn?</p>
