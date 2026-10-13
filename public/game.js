@@ -188,7 +188,7 @@ const AHEAD = 0.01; // a little lookahead so a hit's attack is never cut by the 
 const WET = 0.9; // hall reverb return; per-voice sends decide how much of each sound goes in
 const MUTE_KEY = 'colaudi.muted';
 const SAMPLE_FILES = ['taiko_manh', 'taiko_vua', 'taiko_nhe', 'taiko_don', 'chieng', 'chieng_nguoc', 'tu_va'];
-let ac = null, bus = null, scene = null, rnd = Math.random;
+let ac = null, bus = null, scene = null, rnd = Math.random, crownAt = -9;
 const buf = {}; // decoded samples by file name
 let sampleState = 'idle'; // idle | loading | ok | failed
 function seeded(seed) { // mulberry32: the offline measurement renders are repeatable
@@ -211,9 +211,9 @@ function hallIR(c) {
     const d = ir.getChannelData(ch); let y = 0;
     for (let i = pre; i < len; i++) {
       const t = (i - pre) / rate, x = r() * 2 - 1;
-      const fc = 6000 * Math.pow(0.1, Math.min(1, t / 3.5)); // 6 kHz at the start, 600 Hz by 3.5 s
+      const fc = 6000 * Math.pow(0.25, Math.min(1, t / 3.5)); // 6 kHz at the start, 1.5 kHz by 3.5 s
       y += (1 - Math.exp(-2 * Math.PI * fc / rate)) * (x - y);
-      d[i] = y * Math.exp(-t / 0.66) * (1 - Math.exp(-t / 0.02)); // ~4.5 s to -60 dB, soft onset
+      d[i] = y * Math.exp(-t / 0.55) * (1 - Math.exp(-t / 0.02)); // ~3.8 s to -60 dB, soft onset
     }
   }
   return ir;
@@ -239,7 +239,7 @@ function audio() {
   if (state.muted || document.hidden) return null;
   try {
     const c = ensureCtx();
-    if (c.state === 'suspended') c.resume().catch(() => {});
+    if (c.state === 'suspended' && !c.startRendering) c.resume().catch(() => {}); // not an offline render: its own suspend() must hold while cues are scheduled
     return c;
   } catch { return null; }
 }
@@ -260,7 +260,9 @@ const grp = (s = sc()) => (s.step && !s.step.dead ? s.step : (s.step = mkGroup(s
 function verbOf(s) { // one convolver per scene, so a scene change also silences its reverb tail
   if (!s.verb) {
     const v = ac.createConvolver(), w = ac.createGain();
-    v.buffer = bus.ir; w.gain.value = WET; v.connect(w).connect(s.g); s.verb = v;
+    const hp = ac.createBiquadFilter(); // nothing below ~220 Hz goes into the hall: that is where the mud built up
+    hp.type = 'highpass'; hp.frequency.value = 220;
+    v.buffer = bus.ir; w.gain.value = WET; hp.connect(v); v.connect(w).connect(s.g); s.verb = hp;
   }
   return s.verb;
 }
@@ -282,7 +284,7 @@ function fade(o, sec, at) {
   if (!o.srcs.size) { try { o.g.disconnect(); } catch { /* gone */ } o.s.groups.delete(o); }
 }
 function killScene() {
-  const s = scene; scene = null;
+  const s = scene; scene = null; crownAt = -9;
   if (!s || !ac) return;
   const t = ac.currentTime;
   s.g.gain.cancelScheduledValues(t); s.g.gain.setTargetAtTime(0, t, 0.025);
@@ -291,7 +293,8 @@ function killScene() {
 }
 
 /* Sample player. o: gain, rate, dt (s), pan, send (reverb), lp (lowpass Hz), off/dur (slice, buffer seconds),
-   cut (fade the slice end), cap [from, to] (ramp to silence between those playback seconds), grp. */
+   cut (fade the slice end), cap [from, to] (ramp to silence between those playback seconds), eq (biquads before the
+   envelope: [[type, Hz, dB, Q], ...]), grp. */
 function play(name, t, o = {}) {
   const c = ac, b = buf[name]; if (!b) return;
   const s = sc(), gp = o.grp || grp(s), rate = o.rate || 1, off = o.off || 0, g = o.gain ?? 1;
@@ -302,6 +305,10 @@ function play(name, t, o = {}) {
   if (o.cut) { const f = Math.min(0.08, len / 2); env.gain.setValueAtTime(g, t0 + len - f); env.gain.linearRampToValueAtTime(0, t0 + len); }
   if (o.cap) { env.gain.setValueAtTime(g, t0 + o.cap[0]); env.gain.linearRampToValueAtTime(0, t0 + o.cap[1]); }
   let node = src;
+  for (const [type, f, db, q] of o.eq || []) {
+    const e = c.createBiquadFilter(); e.type = type; e.frequency.value = f; e.gain.value = db || 0; e.Q.value = q || 0.7;
+    node.connect(e); node = e;
+  }
   if (o.lp) { const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = o.lp; node.connect(f); node = f; }
   if (o.pan && c.createStereoPanner) { const p = c.createStereoPanner(); p.pan.value = o.pan; node.connect(p); node = p; }
   node.connect(env); env.connect(gp.g);
@@ -311,23 +318,33 @@ function play(name, t, o = {}) {
 }
 // Ensemble: 3 or 4 layers, +-10..30 ms micro-timing, +-1..3% pitch, one low layer (rate 0.75, lowpassed).
 // Big strokes also get a quiet synth skin for the mid band.
+// o.bright: the "ceremonial" voicing: no low layer, nothing under 140 Hz, +6 dB around 2.8 kHz so the attack cuts
+// through laptop speakers. o.low === false drops the low layer on its own.
 const ENS = 0.42;
+const BRIGHT = [['highpass', 140, 0, 0.7], ['peaking', 2800, 6, 0.9]];
 function ens(name, t, g, o = {}) {
-  const send = o.send ?? 0.35, r = o.rate || 1, p = { off: o.off, dur: o.dur, cut: o.cut }, k = g * ENS;
+  const send = o.send ?? 0.35, r = o.rate || 1, p = { off: o.off, dur: o.dur, cut: o.cut, eq: o.bright ? BRIGHT : undefined }, k = g * ENS * (o.bright ? 1.5 : 1); // the high-pass takes level away: make it up
   const j = () => (0.01 + rnd() * 0.02) * (rnd() < 0.5 ? -1 : 1);
   play(name, t, { ...p, gain: k, send, rate: r });
   play(name, t, { ...p, gain: k * 0.75, send, pan: -0.45, rate: r * (1 + j()), dt: 0.01 + rnd() * 0.02 });
   play(name, t, { ...p, gain: k * 0.75, send, pan: 0.45, rate: r * (1 + j()), dt: 0.01 + rnd() * 0.02 });
-  if (!o.light) play(name, t, { ...p, gain: k * 0.8, send: send + 0.1, rate: r * 0.75, dt: rnd() * 0.01, lp: 3000 });
+  if (!o.light && !o.bright && o.low !== false) play(name, t, { ...p, gain: k * 0.8, send: send + 0.1, rate: r * 0.75, dt: rnd() * 0.01, lp: 3000 });
   if (!o.light && o.body !== false) syn.skin(t, g * 0.4 * (r < 1 ? r : 1));
 }
-// Gong: one voice at a time. The raw strike plus a quiet half-speed layer; the ring is capped at ~10.5 s (+ reverb).
+// Gong: one voice at a time. The strike rings until the cap (default ~10.5 s, + reverb). The half-speed sub layer is
+// opt-in (o.sub): it only piled up energy under 150 Hz. o.bright: nothing under 150 Hz, +8 dB above 1.5 kHz.
+const BRIGHT_GONG = [['highpass', 150, 0, 0.7], ['highshelf', 1500, 8, 0.7]];
 function gong(t, g, o = {}) {
   const s = sc();
   if (s.gong) fade(s.gong, 0.35, t);
-  const gp = s.gong = mkGroup(s), cap = o.cap || [7.5, 10.5];
-  for (const r of o.rates || [1]) play('chieng', t, { grp: gp, gain: g * 0.8, rate: r, send: 0.6, cap });
-  if (o.sub !== false) play('chieng', t, { grp: gp, gain: g * 0.25, rate: 0.5, lp: 500, dt: 0.004, send: 0.4, dur: 6, cap });
+  const gp = s.gong = mkGroup(s), cap = o.cap || [7.5, 10.5], eq = o.bright ? BRIGHT_GONG : undefined;
+  for (const r of o.rates || [1]) play('chieng', t, { grp: gp, gain: g * 0.8, rate: r, send: o.send ?? 0.6, cap, eq });
+  if (o.sub) play('chieng', t, { grp: gp, gain: g * 0.25, rate: 0.5, lp: 500, dt: 0.004, send: 0.4, dur: 6, cap });
+}
+// Lower the ringing gong to `level` (a gain ratio) without stopping it, e.g. under a later accent.
+function duck(t, level) {
+  const gp = sc().gong; if (!gp || gp.dead) return;
+  gp.g.gain.cancelScheduledValues(t); gp.g.gain.setTargetAtTime(level, t, 0.08);
 }
 // Horn (conch): two detuned layers. dur cuts it short.
 function horn(t, g, o = {}) {
@@ -413,11 +430,11 @@ const CUES = {
   // "Hết giờ": one gong, then silence until the pick. Presenter only.
   timeup(t) { gong(t, 0.8); },
   // Ensemble hit, the accelerating roll, a huge stroke and a gong that rings out.
-  correct(t) { ens(BIG, t, 0.9); roll(t, ROLL, 0.85); ens(BIG, t + 1.2, 1); gong(t + 1.2, 0.9); },
+  correct(t) { ens(BIG, t, 0.9, { bright: true }); roll(t, ROLL, 0.85, { bright: true }); ens(BIG, t + 1.2, 1, { bright: true }); gong(t + 1.2, 0.9, { bright: true }); },
   // Muffled low drum and a short, dissonant gong.
   wrong(t) {
     play(MID, t, { gain: 0.5, rate: 0.6, lp: 500, send: 0.3 });
-    gong(t + 0.05, 0.45, { rates: [1, 1.06], sub: false, cap: [0.4, 1.8] });
+    gong(t + 0.05, 0.45, { rates: [1, 1.06], cap: [0.4, 1.8] });
   },
   // Surrender cascade: one hit per tile, rising in pitch and level.
   tile(t, i, n) {
@@ -427,19 +444,24 @@ const CUES = {
   },
   end(t) { ens(BIG, t + 0.1, 0.9); gong(t + 0.1, 1); },
   submitted(t) { gong(t, 0.9); roll(t, [[.1, .5], [.25, .6], [.38, .7], [.5, .8]], 0.85); },
+  // Coronation: one arc with ONE climax (step 2). Steps 0-1 are sparse strokes, step 3 a single accent, steps 4-6 are
+  // silent so the text breathes (the step-2 gong rings on, starts to fade at 2 s and is gone by 6.5 s), step 7 closes.
   crown(t, n) {
-    if (n === 0) [[0, .85], [.85, .95], [1.7, 1]].forEach(([d, v]) => ens(BIG, t + d, v)); // three slow ceremonial strokes
-    else if (n === 2) { ens(BIG, t, 1); ens(MID, t, 0.45, { rate: 0.8, body: false }); horn(t, 0.7, { dur: 5 }); gong(t, 0.8); } // tutti
-    else if (n === 3) { gong(t, 0.8); gong(t + 0.55, 0.85, { rates: [0.94], sub: false }); gong(t + 1.1, 1, { rates: [0.88] }); } // three gongs, staggered
-    else if (n === 7) ens(BIG, t, 1); // closing stroke
+    const B = { bright: true };
+    if (n === 0) { ens(BIG, t, 0.95, B); ens(BIG, t + 1.3, 1.1, B); } // two spaced strokes
+    else if (n === 1) ens(MID, t, 0.95, B); // one medium stroke
+    else if (n === 2) { ens(BIG, t, 1, B); horn(t, 0.7, { dur: 3.5 }); gong(t, 0.9, { bright: true, cap: [2, 6.5] }); } // tutti: the climax
+    else if (n === 3) { duck(t, 0.15); ens(BIG, t + 0.05, 1.2, B); } // one accent over the ringing gong
+    else if (n === 7) ens(BIG, t, 1.2, B); // closing stroke
   },
   finale(t, n) {
+    const B = { bright: true };
     if (n === 0) play('chieng_nguoc', t, { gain: 0.9, send: 0.4 }); // time rewinding
-    else if (n === 1) ens(BIG, t, 0.9);
-    else if (n === 2) { ens(BIG, t, 1, { rate: 0.8 }); syn.sub(t, 80, 45, 1.2, 0.4); syn.pulse(t + 0.1, 0.8); } // ancient turns modern
-    else if (n === 3) { ens(BIG, t, 1); syn.sub(t, 85, 40, 1.8, 0.5); gong(t, 0.9); } // hybrid impact
-    else if (n === 5) ens(DON, t, 0.95); // war-drum call to arms
-    else if (n === 6) { ens(BIG, t, 1); ens(MID, t, 0.45, { rate: 0.8, body: false }); horn(t, 0.5, { dur: 3 }); syn.sub(t, 85, 40, 1.8, 0.3); gong(t, 0.85); } // seal: stamp, tutti, gong
+    else if (n === 1) ens(BIG, t, 0.9, B);
+    else if (n === 2) { ens(BIG, t, 1, { ...B, rate: 0.8 }); syn.sub(t, 80, 45, 1.2, 0.25); syn.pulse(t + 0.1, 0.8); } // ancient turns modern
+    else if (n === 3) { ens(BIG, t, 1, B); syn.sub(t, 85, 40, 1.8, 0.3); gong(t, 0.9, { bright: true }); } // hybrid impact
+    else if (n === 5) ens(DON, t, 0.95, B); // war-drum call to arms
+    else if (n === 6) { ens(BIG, t, 1, B); horn(t, 0.5, { dur: 3 }); gong(t, 0.85, { bright: true }); } // seal: stamp, horn, gong
   }
 };
 const SYN_CUES = {
@@ -447,7 +469,7 @@ const SYN_CUES = {
   tick: CUES.tick, timeup: t => syn.gong(t),
   correct: t => syn.roll(t), wrong: t => syn.bad(t),
   tile: (t, i) => { if (i % 3 === 0) syn.drum(t); }, end: t => syn.gong(t), submitted: t => syn.roll(t),
-  crown: (t, n) => { if (n === 0) syn.roll(t); else if (n === 3) syn.gong(t); else if (n === 2 || n === 7) syn.drum(t); },
+  crown: (t, n) => { if (n === 2) syn.gong(t); else if ([0, 1, 3, 7].includes(n)) syn.drum(t, n === 1 ? 0.7 : 1); },
   finale: (t, n) => { if (n === 3) syn.gong(t); else if (n === 6) { syn.drum(t); syn.gong(t); } else if (n === 1 || n === 2 || n === 5) syn.drum(t); }
 };
 
@@ -474,6 +496,10 @@ const sfx = {
       const c = audio(); if (!c) return;
       const t = c.currentTime + AHEAD, s = sc();
       if (name === 'crown' || name === 'finale') { fade(s.step, 0.12); s.step = null; } // Enter-skip: end the previous step's drums
+      if (name === 'crown') { // Enter-mashing: a step less than 0.5 s after the last one stays silent, except the climax (2) and the close (7)
+        const quick = t - crownAt < 0.5; crownAt = t;
+        if (quick && a !== 2 && a !== 7) return;
+      }
       (sampleState === 'ok' ? CUES : SYN_CUES)[name]?.(t, a, b);
     } catch { /* sound must never break the game */ }
   },
@@ -498,16 +524,18 @@ if (PRESENTER && new URLSearchParams(location.search).has('soundtest')) {
     // script: [[atSeconds, cueName | '@scene', a, b], ...] -> { sr, data: [L, R] } rendered through the real bus
     async render(script, seconds, { clip = true, seed = 1 } = {}) {
       const sr = 44100, off = new OfflineAudioContext(2, Math.ceil(sr * seconds), sr);
-      const saved = { ac, bus, scene, rnd, muted: state.muted };
+      const saved = { ac, bus, scene, rnd, crownAt, muted: state.muted };
       try {
-        ac = off; bus = makeBus(off, { clip }); scene = null; rnd = seeded(seed); state.muted = false;
+        const mr = Math.random; Math.random = seeded(seed + 1000); // the noise buffer too, so clip on/off renders match
+        try { ac = off; bus = makeBus(off, { clip }); } finally { Math.random = mr; }
+        scene = null; crownAt = -9; rnd = seeded(seed); state.muted = false;
         const run = ([, name, a, b]) => (name === '@scene' ? sfx.scene() : sfx.cue(name, a, b));
         const at = new Map(); // one suspend per render quantum, however many cues start there
         script.forEach(s => { const q = Math.round(s[0] * sr / 128) * 128 / sr; at.set(q, [...(at.get(q) || []), s]); });
         at.forEach((list, q) => { if (q <= 0) list.forEach(run); else off.suspend(q).then(() => { list.forEach(run); off.resume(); }); });
         const out = await off.startRendering();
         return { sr, data: [out.getChannelData(0).slice(), out.getChannelData(1).slice()] };
-      } finally { ({ ac, bus, scene, rnd } = saved); state.muted = saved.muted; }
+      } finally { ({ ac, bus, scene, rnd, crownAt } = saved); state.muted = saved.muted; }
     }
   };
 }
