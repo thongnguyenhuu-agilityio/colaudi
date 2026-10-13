@@ -28,7 +28,7 @@ Demo game for an internal talk ("Claude cho Dev, BA và QA"): Đinh Bộ Lĩnh d
 - `npm run smoke -- <url> [--write]` — smoke test a deployment; `--write` exercises the write path without adding a board entry
 - `npm run board -- <url> top|wipe|rm <name>|close|open` — organiser commands (ADMIN_KEY from the environment, never on the command line)
 
-CI (`ci/test.yml`, runs `npm ci && npm test` on Node 22) is not yet under `.github/workflows/`.
+CI: `.github/workflows/test.yml` runs `npm ci && npm test` on Node 22 for every push and PR. Run e2e under Node 22 too; Playwright 1.47.2 hangs on newer Node.
 
 ## Architecture
 - **Static site + one function.** `vercel.json` serves `public/` as-is and `api/leaderboard.js` as a Vercel Function exporting Web-standard `GET`/`POST`/`DELETE(Request) → Response` handlers. `scripts/dev.mjs` is a zero-dependency Node server that imports those same handlers, so local and Vercel behaviour match. Tests call the handlers directly with `new Request(...)`.

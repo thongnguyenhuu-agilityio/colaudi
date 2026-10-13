@@ -52,10 +52,9 @@ flowchart LR
 
 Run in Terminal on the Mac, from `~/p-webs/p-colaudi`.
 
-**Step 1. Put the CI workflow in place, install, test**
+**Step 1. Install, test** (Node 22: Playwright 1.47.2 hangs on newer Node)
 
 ```bash
-mkdir -p .github/workflows && mv ci/test.yml .github/workflows/ && rmdir ci
 npm ci
 npm test
 npx playwright install chromium && npm run test:e2e
