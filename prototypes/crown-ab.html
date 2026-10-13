@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lên ngôi A/B</title>
+<style>
+  :root { --bg: #1b140d; --ink: #f3e6c8; --gold: #d9a441; --mut: #a8957a; }
+  body { margin: 0; min-height: 100vh; display: grid; place-content: center; gap: 18px; padding: 24px; background: var(--bg); color: var(--ink); font: 17px/1.5 system-ui, sans-serif; }
+  h1 { margin: 0; font-size: 22px; color: var(--gold); }
+  p { margin: 0; max-width: 34em; color: var(--mut); }
+  .row { display: flex; flex-wrap: wrap; gap: 12px; }
+  button { font: inherit; padding: 14px 20px; border-radius: 10px; border: 2px solid var(--gold); background: transparent; color: var(--ink); cursor: pointer; }
+  button.on { background: var(--gold); color: #1b140d; }
+  button.stop { border-color: var(--mut); color: var(--mut); }
+  #now { min-height: 1.5em; color: var(--gold); }
+</style>
+</head>
+<body>
+  <h1>Lên ngôi: nghe thử A/B</h1>
+  <p>Cả hai bản phát đủ 8 nhịp, cách nhau 2,6 giây như trong game (khoảng 36 giây mỗi bản, kể cả đuôi chiêng). Nghe hết một bản rồi mới bấm bản kia. Cần bật loa laptop hoặc tai nghe bạn hay dùng.</p>
+  <div class="row">
+    <button id="old">Lên ngôi — bản cũ</button>
+    <button id="new">Lên ngôi — bản mới</button>
+    <button id="stop" class="stop">Dừng</button>
+  </div>
+  <div id="now" aria-live="polite"></div>
+  <p>Chạy: <code>python3 -m http.server</code> ở thư mục gốc rồi mở <code>/prototypes/crown-ab.html</code>. Tạo lại file âm: <code>node scripts/render-crown-ab.mjs</code>.</p>
+<script>
+  const files = { old: 'crown-ab/crown-old.mp3', new: 'crown-ab/crown-new.mp3' };
+  const audio = { old: new Audio(files.old), new: new Audio(files.new) };
+  const now = document.getElementById('now');
+  function stopAll() {
+    for (const k in audio) { audio[k].pause(); audio[k].currentTime = 0; document.getElementById(k).classList.remove('on'); }
+    now.textContent = '';
+  }
+  for (const k of ['old', 'new']) {
+    document.getElementById(k).onclick = () => {
+      stopAll();
+      audio[k].play().then(() => { document.getElementById(k).classList.add('on'); now.textContent = 'Đang phát: bản ' + (k === 'old' ? 'cũ' : 'mới'); })
+        .catch(() => { now.textContent = 'Không phát được. Mở trang qua http.server, không mở trực tiếp file.'; });
+      audio[k].onended = stopAll;
+    };
+  }
+  document.getElementById('stop').onclick = stopAll;
+</script>
+</body>
+</html>
