@@ -70,7 +70,7 @@ The **Who** column says who hears the cue:
 
 **Mix targets:**
 - Keep the energy in the mid band, above 150 Hz. Meet and laptop speakers drop the lows.
-- Gong tails ≤ 4 s. Light reverb only, because two Opus encodes through the relay smear long tails.
+- Gong and drum tails: the owner chose long rings (updated 2026-10-13, after he rejected the 4 s tails), so gong tails may exceed 4 s (candidates keep their natural 8 to 15 s) and the hall reverb is no longer "light". Risk that stays: two Opus encodes through the relay smear long tails, so ringing cues can blur the next cue on the presenter's stream. The room-B listener in dry run 2 checks this; if the relay mush is bad, shorten tails then, not before.
 - **Players** get the cues at 70 % of the presenter level, and nothing from the vote timer.
 
 ## 5. Engineering
