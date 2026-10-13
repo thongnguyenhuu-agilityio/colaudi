@@ -12,6 +12,8 @@ Bộ tài liệu của dự án game demo "Cờ Lau Đi" cho buổi thuyết tr�
 | 06 | [Kịch bản và hỏi đáp khán giả](06-kich-ban-va-hoi-dap-khan-gia.md) | Người trình bày | Lời nói cho từng phần, cách chạy phần hỏi đáp, câu trả lời chuẩn bị sẵn |
 | 07 | [Deployment plan](07-deployment.md) (English) | Dev, người trình bày, co-host | Môi trường, lịch Thứ Ba–Thứ Bảy, các bước deploy lần đầu, luồng demo, checklist và việc của co-host ngày thuyết trình, gỡ bỏ sau sự kiện |
 | 08 | [Red-team review](08-red-team-review.md) (English) | Dev, người trình bày | 16 phát hiện về code và kế hoạch, cách sửa, rủi ro chấp nhận |
+| 09 | [Sound plan](09-sound-plan.md) (English) | Dev, người trình bày | Kế hoạch âm thanh trống, chiêng sau red-team: danh sách cue theo cảnh, kỹ thuật, kiểm thử, mốc duyệt trước `cp0` |
+| 10 | [Rà soát lời văn](10-copy-review.md) | Thông, người trình bày | Bảng trước → sau của mọi dòng lời văn đã chuyển sang giọng sử ký, hịch, chiếu; điểm giữ nguyên; việc chờ Thông quyết |
 
 **Cách đọc nhanh:** đọc 01 để biết làm gì, 02 để biết vì sao, 04 để biết buổi họp diễn ra thế nào.
 

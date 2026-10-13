@@ -1,0 +1,383 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Nghe thử trống trận, chiêng, tù và</title>
+<style>
+  :root { --bg: #14110d; --panel: #1f1a14; --line: #3a3126; --ink: #f0e6d2; --dim: #a89a80; --gold: #d9a93a; --red: #e0614a; --green: #7fbf7f; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 0 16px 56px; background: var(--bg); color: var(--ink); font: 16px/1.5 system-ui, -apple-system, sans-serif; }
+  main { max-width: 900px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 18px 0 4px; color: var(--gold); }
+  h2 { font-size: 17px; margin: 30px 0 8px; color: var(--gold); }
+  p { color: var(--dim); margin: 4px 0; }
+  .bar { position: sticky; top: 0; z-index: 5; background: var(--bg); border-bottom: 1px solid var(--line); padding: 10px 0; margin-bottom: 8px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+  .bar #summary { flex: 1 1 320px; color: var(--ink); }
+  .bar #codes { display: block; color: var(--dim); font-size: 12px; word-break: break-all; }
+  .err { display: none; background: #4a1c14; border: 1px solid var(--red); color: #ffd9cf; padding: 10px 12px; border-radius: 6px; margin: 12px 0; white-space: pre-wrap; }
+  .err.on { display: block; }
+  button, select { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 8px 12px; min-height: 44px; }
+  button { cursor: pointer; }
+  button:hover:not(:disabled) { border-color: var(--gold); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button.hung { border-left: 3px solid var(--gold); }
+  button.stop { border-color: var(--red); }
+  .row { display: grid; grid-template-columns: auto 1fr auto auto; gap: 8px 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .row .name b { display: block; }
+  .row .name small { color: var(--dim); font-size: 12.5px; display: block; line-height: 1.35; }
+  .pick { display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 6px; cursor: pointer; color: var(--gold); white-space: nowrap; }
+  .pick input { width: 20px; height: 20px; accent-color: var(--gold); }
+  .moments { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 12px 0; }
+  .moments label { display: block; color: var(--dim); font-size: 13px; }
+  .moments select { width: 100%; }
+  .btns { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .btns span { display: block; font-size: 12.5px; color: var(--dim); }
+  @media (max-width: 680px) {
+    .row { grid-template-columns: auto 1fr; }
+    .row button { grid-column: 1 / -1; }
+    .moments, .btns { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Nghe thử trống trận, chiêng, tù và</h1>
+  <p>Vòng 2: nhiều mẫu hơn, đuôi chiêng và trống được giữ nguyên. "Nghe gốc" là mẫu thu chưa xử lý. "Nghe hùng tráng" là nhiều lớp chồng nhau, lệch nhịp và lệch cao độ nhẹ, thêm tiếng vang đại sảnh. Nên nghe cả bằng loa laptop như khi họp Meet. Tích "Chọn" ở bản nào nghe được, rồi đọc dòng tổng kết ở trên cho chúng tôi.</p>
+  <div class="bar">
+    <div id="summary" aria-live="polite">Chưa chọn bản nào.</div>
+    <button class="stop" id="stop" type="button">Dừng</button>
+  </div>
+  <div id="err" class="err" role="alert"></div>
+  <p id="status">Đang tải các mẫu...</p>
+
+  <h2>Trống</h2><div id="list-drum"></div>
+  <h2>Chiêng (cồng)</h2><div id="list-gong"></div>
+  <h2>Tù và</h2><div id="list-horn"></div>
+
+  <h2>Ghép khoảnh khắc</h2>
+  <p>Chọn một trống, một chiêng, một tù và, rồi bấm từng khoảnh khắc. Chiêng được để ngân hết, không cắt.</p>
+  <div class="moments">
+    <div><label for="sel-drum">Trống</label><select id="sel-drum"></select></div>
+    <div><label for="sel-gong">Chiêng</label><select id="sel-gong"></select></div>
+    <div><label for="sel-horn">Tù và</label><select id="sel-horn"></select></div>
+  </div>
+  <div class="btns">
+    <button type="button" data-m="battle" disabled>Vào trận<span>tù và, rồi dàn trống dồn khoảng 2 giây</span></button>
+    <button type="button" data-m="correct" disabled>Trả lời đúng<span>dàn trống dồn nhanh dần, kết bằng một tiếng thật to và chiêng</span></button>
+    <button type="button" data-m="crown" disabled>Đăng quang<span>"Đại Thắng Minh Hoàng Đế": ba nhịp chậm, tù và, chiêng ngân dài</span></button>
+  </div>
+</main>
+
+<script>
+/* Candidate list. Order here is the number shown to the user (#1, #2 ...), keep it the same as CANDIDATES.md. */
+const CANDS = {
+  drum: [
+    ['405127', 'Hi-Toms and Taikos Drum Loop', 'BuytheField', 'vòng lặp tom và taiko'],
+    ['459561', 'Taiko Drum Sequence', 'Infinita08', 'chuỗi taiko'],
+    ['621296', 'Taiko Drums, mastered', 'WelvynZPorterSamples', 'taiko đánh đều'],
+    ['209546', 'warriordrums', 'Sclolex', 'trống chiến binh'],
+    ['632099', 'war_drums', 'nicovize', 'trống trận'],
+    ['329027', 'War Drums 9', 'BuytheField', 'trống trận, thu nhỏ tiếng'],
+    ['328009', 'Epic Drum', 'Terry93D', 'hai nhịp trống lớn'],
+    ['502942', 'Orchestral drums', 'cellokratzer', 'trống dàn nhạc'],
+    ['428611', 'Timpani Roll', 'hallkev', 'trống timpani đánh dồn'],
+    ['373946', 'Timpani rolls E3', 'sgossner', 'timpani đánh dồn, tiếng nhỏ'],
+    ['522612', 'Kitchen Drum Force Battle', 'szegvari', 'trống chiến'],
+    ['486140', 'taiko.wav', 'Anuj_Shrestha1', 'hai nhịp taiko'],
+    ['375286', 'Bass drum roll short', 'sgossner', 'trống bass đánh dồn ngắn']
+  ],
+  gong: [
+    ['486629', 'Gong Brilliant Paiste 32"', 'JensZygar', 'một tiếng, đuôi rất dài'],
+    ['316642', 'gong.aiff', 'bevibeldesign', 'một tiếng, đuôi dài'],
+    ['209918', 'Gong sabi 1', 'Logicogonist', 'một tiếng, đuôi dài'],
+    ['240159', 'Gong 13,157 plus Stretch', 'the_very_Real_Horst', 'hai tiếng liền nhau'],
+    ['735855', 'French gong 2', 'Logicogonist', 'một tiếng, ngân đều'],
+    ['158189', 'Gong bashing with resonance', 'hiddenpersuader', 'nhiều lần đánh, ngân'],
+    ['803159', 'Temple Gong 2', 'kerozenne', 'chiêng chùa, tiếng cuối'],
+    ['152673', 'Large Indonesian Gong', 'Nirtana', 'chiêng lớn Indonesia, gần kiểu gamelan'],
+    ['397352', 'Montbell (Bonshō)', 'Vurca', 'chuông chùa Nhật, không phải chiêng']
+  ],
+  horn: [
+    ['78974', 'Conch', 'RoofDog', 'tù và ốc'],
+    ['64830', 'Snailhorn', 'Ohrwurm', 'tù và ốc, một hơi'],
+    ['528598', 'scary conch shell', 'DreStortion', 'tù và ốc, ngân'],
+    ['479310', 'shofar blast, two tone', 'Sonicsheep', 'kèn shofar hai âm'],
+    ['223368', 'Small Shofar', 'Sauron974', 'kèn shofar nhỏ'],
+    ['704440', 'Viking Horn in D', 'roemergruft', 'tù và kiểu Viking'],
+    ['512490', 'Distant War Horn', 'DeVern', 'tù và chiến, vọng xa'],
+    ['501030', 'F Battle horn', 'Kurlyjoe', 'tù và chiến'],
+    ['402753', 'medieval horn', 'klavo1985', 'tù và trung cổ'],
+    ['328541', 'Deep Horn', 'Vendarro', 'tù và trầm']
+  ]
+};
+const KIND_NAME = { drum: 'trống', gong: 'chiêng', horn: 'tù và' };
+const DEFAULTS = { drum: '459561', gong: '486629', horn: '704440' };
+const MASTER = 0.6;
+const STORE = 'colaudi.audition.v2';
+
+const buffers = {};   // file base name -> AudioBuffer
+const kits = {};      // drum file -> { all, big, hits, n }
+const failures = [];
+
+/* ---------- audio engine ---------- */
+function seeded(seed) { // mulberry32, so offline renders are repeatable
+  let a = seed >>> 0;
+  return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+const irCache = new WeakMap();
+// Hall impulse: 30 ms pre-delay, ~5 s, the tail is progressively lowpassed so it darkens as it dies.
+function hallIR(c) {
+  if (irCache.has(c)) return irCache.get(c);
+  const rate = c.sampleRate, len = Math.round(rate * 5.2), pre = Math.round(rate * 0.03), r = seeded(7);
+  const ir = c.createBuffer(2, len, rate);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = ir.getChannelData(ch); let y = 0;
+    for (let i = pre; i < len; i++) {
+      const t = (i - pre) / rate, x = r() * 2 - 1;
+      const fc = 6000 * Math.pow(0.1, Math.min(1, t / 3.5)); // 6 kHz at the start, 600 Hz by 3.5 s
+      y += (1 - Math.exp(-2 * Math.PI * fc / rate)) * (x - y);
+      d[i] = y * Math.exp(-t / 0.66) * (1 - Math.exp(-t / 0.02)); // ~4.5 s to -60 dB, soft onset
+    }
+  }
+  irCache.set(c, ir); return ir;
+}
+function softCurve() { // same soft clipper as public/game.js
+  const knee = 0.7, soft = new Float32Array(2048);
+  for (let i = 0; i < soft.length; i++) {
+    const x = i / 1023.5 - 1, a = Math.abs(x);
+    soft[i] = a <= knee ? x : Math.sign(x) * (knee + (1 - knee) * Math.tanh((a - knee) / (1 - knee)));
+  }
+  return soft;
+}
+const CURVE = softCurve();
+// One bus per play: master gain -> soft clipper -> output, plus a hall reverb send. Stop = fade master, drop the bus.
+function makeBus(c, o = {}) {
+  const master = c.createGain(), verb = c.createConvolver(), wet = c.createGain();
+  master.gain.value = o.master == null ? MASTER : o.master; wet.gain.value = o.wet == null ? 0.9 : o.wet;
+  verb.buffer = hallIR(c);
+  verb.connect(wet).connect(master);
+  if (o.clip === false) master.connect(o.tap || c.destination);
+  else { const clip = c.createWaveShaper(); clip.curve = CURVE; master.connect(clip).connect(o.tap || c.destination); }
+  return { c, master, verb, srcs: [] };
+}
+/* Play part of a buffer: slice = { buf, off, dur }. o: gain, rate, dt (s), pan, send, lp, cut (fade the slice end). */
+function voice(b, slice, t, o = {}) {
+  const c = b.c, src = c.createBufferSource(), env = c.createGain(), rate = o.rate || 1;
+  src.buffer = slice.buf; src.playbackRate.value = rate;
+  const t0 = t + (o.dt || 0), len = Math.min(slice.dur, slice.buf.duration - slice.off) / rate;
+  env.gain.setValueAtTime(o.gain == null ? 1 : o.gain, t0);
+  if (slice.cut) { const f = Math.min(0.08, len / 2); env.gain.setValueAtTime(o.gain == null ? 1 : o.gain, t0 + len - f); env.gain.linearRampToValueAtTime(0, t0 + len); }
+  let node = src;
+  if (o.lp) { const f = c.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = o.lp; node.connect(f); node = f; }
+  if (o.pan && c.createStereoPanner) { const p = c.createStereoPanner(); p.pan.value = o.pan; node.connect(p); node = p; }
+  node.connect(env); env.connect(b.master);
+  if (o.send) { const s = c.createGain(); s.gain.value = o.send; env.connect(s).connect(b.verb); }
+  src.start(t0, slice.off); src.stop(t0 + len + 0.05);
+  b.srcs.push(src);
+}
+const whole = buf => ({ buf, off: 0, dur: buf.duration });
+const part = (buf, dur, cut = true) => ({ buf, off: 0, dur: Math.min(dur, buf.duration), cut });
+const jit = (r, lo, hi) => (lo + r() * (hi - lo)) * (r() < 0.5 ? -1 : 1);
+
+/* Ensemble: 3 or 4 layers, +-10..30 ms micro-timing, +-3% pitch, one layer low (rate ~0.75). */
+function ensemble(b, slice, t, g, r, o = {}) {
+  const send = o.send == null ? 0.35 : o.send;
+  voice(b, slice, t, { gain: g, send, pan: 0 });
+  voice(b, slice, t, { gain: g * 0.75, send, pan: -0.45, rate: 1 + jit(r, 0.01, 0.03), dt: 0.01 + r() * 0.02 });
+  voice(b, slice, t, { gain: g * 0.75, send, pan: 0.45, rate: 1 + jit(r, 0.01, 0.03), dt: 0.01 + r() * 0.02 });
+  if (!o.light) voice(b, slice, t, { gain: g * 0.8, send: send + 0.1, rate: 0.75, dt: r() * 0.01, lp: 3000 });
+}
+// Gong: the raw strike, a quiet sub layer an octave down, and a long hall.
+function gong(b, slice, t, g, r) {
+  voice(b, slice, t, { gain: g, send: 0.6 });
+  voice(b, slice, t, { gain: g * 0.35, send: 0.4, rate: 0.5, lp: 500, dt: 0.004 });
+}
+// Horn: two detuned layers and the hall.
+function horn(b, slice, t, g, r) {
+  voice(b, slice, t, { gain: g * 0.7, send: 0.5, rate: Math.pow(2, -12 / 1200), pan: -0.35 });
+  voice(b, slice, t, { gain: g * 0.7, send: 0.5, rate: Math.pow(2, 12 / 1200), pan: 0.35, dt: 0.012 });
+}
+
+/* Drum kit: find the hits in a clip so any recording can feed a roll. */
+function analyse(buf) {
+  const d = buf.getChannelData(0), sr = buf.sampleRate, hop = Math.round(sr * 0.005), n = Math.floor(d.length / hop) - 2;
+  const env = [];
+  for (let k = 0; k < n; k++) { let s = 0; for (let i = k * hop; i < (k + 2) * hop; i++) s += d[i] * d[i]; env.push(Math.sqrt(s / (2 * hop))); }
+  const mx = Math.max(...env, 1e-6), on = [];
+  for (let k = 10; k < n - 1;) {
+    let prev = 0; for (let j = k - 6; j < k; j++) prev += env[j]; prev /= 6;
+    if (env[k] > prev * 1.7 && env[k] > mx * 0.12) {
+      let pk = env[k], at = k; for (let j = k; j < Math.min(n, k + 8); j++) if (env[j] > pk) { pk = env[j]; at = j; }
+      on.push({ t: Math.max(0, (k - 1) * hop / sr), pk }); k += 16;
+    } else k++;
+  }
+  const end = buf.duration;
+  const hits = on.map((o, i) => {
+    const gap = (i + 1 < on.length ? on[i + 1].t : end) - o.t;
+    return { buf, off: o.t, dur: Math.max(0.12, Math.min(gap, 0.9)), cut: gap < 0.9 && i + 1 < on.length, pk: o.pk, gap };
+  });
+  if (!hits.length) hits.push({ buf, off: 0, dur: Math.min(end, 2), cut: end > 2, pk: mx, gap: end });
+  const roomy = hits.filter(h => h.gap >= 0.35);
+  const bigSrc = (roomy.length ? roomy : hits).reduce((a, h) => h.pk > a.pk ? h : a);
+  const big = { buf, off: bigSrc.off, dur: Math.max(0.5, Math.min(bigSrc.gap, 2.4)), cut: bigSrc.gap < 2.4 && bigSrc !== hits[hits.length - 1] };
+  return { all: whole(buf), big, hits, n: on.length };
+}
+
+/* ---------- the three moments ---------- */
+function roll(b, kit, t, times, r, base) {
+  times.forEach(([d, v], i) => ensemble(b, kit.hits[i % kit.hits.length], t + d, base * v, r, { light: true, send: 0.3 }));
+}
+const MOMENTS = {
+  // Horn call, then an ensemble fill that speeds up and lands on one huge stroke (~2.5 s).
+  battle(b, P, t, r) {
+    horn(b, part(P.horn, 2.4), t, 1, r);
+    roll(b, P.drum, t + 0.45, [[0, .4], [.3, .5], [.58, .55], [.82, .6], [1.03, .7], [1.2, .75], [1.33, .8], [1.43, .85], [1.5, .9]], r, 0.9);
+    ensemble(b, P.drum.big, t + 2.1, 1, r);
+  },
+  // Ensemble hit, accelerating roll (game timing), huge stroke plus a gong that rings out.
+  correct(b, P, t, r) {
+    ensemble(b, P.drum.big, t, 0.9, r);
+    roll(b, P.drum, t, [[.2, .55], [.38, .7], [.53, .6], [.66, .8], [.77, .65], [.86, .85], [.94, .75], [1.01, .9]], r, 0.85);
+    ensemble(b, P.drum.big, t + 1.2, 1, r);
+    gong(b, whole(P.gong), t + 1.2, 0.9, r);
+  },
+  // Three slow massive strokes; the third is tutti with horn and a gong that rings for as long as it likes.
+  crown(b, P, t, r) {
+    ensemble(b, P.drum.big, t, 0.85, r);
+    ensemble(b, P.drum.big, t + 1.7, 0.95, r);
+    ensemble(b, P.drum.big, t + 3.4, 1, r);
+    horn(b, part(P.horn, 8, true), t + 3.4, 0.9, r);
+    gong(b, whole(P.gong), t + 3.4, 1, r);
+  }
+};
+function picks() {
+  return { drum: kits['drum_' + sel('drum').value], gong: buffers['gong_' + sel('gong').value], horn: buffers['horn_' + sel('horn').value] };
+}
+function sel(k) { return document.getElementById('sel-' + k); }
+
+/* ---------- playback ---------- */
+let live = null; const buses = new Set();
+function ctx() {
+  if (!live) live = new (window.AudioContext || window.webkitAudioContext)();
+  if (live.state === 'suspended') live.resume();
+  return live;
+}
+function stopAll() {
+  const now = live ? live.currentTime : 0;
+  buses.forEach(b => {
+    b.master.gain.cancelScheduledValues(now); b.master.gain.setValueAtTime(b.master.gain.value, now);
+    b.master.gain.linearRampToValueAtTime(0, now + 0.3);
+    setTimeout(() => { b.srcs.forEach(s => { try { s.stop(); } catch (e) { /* already ended */ } }); try { b.master.disconnect(); } catch (e) { /* gone */ } }, 400);
+  });
+  buses.clear();
+}
+function begin(o) { const c = ctx(), b = makeBus(c, o); buses.add(b); return { c, b }; }
+function playRaw(file, kind) {
+  const { c, b } = begin({ wet: 0 }); const buf = buffers[file];
+  voice(b, whole(buf), c.currentTime + 0.03, { gain: 1 });
+}
+function playBig(file, kind) {
+  const { c, b } = begin(); const t = c.currentTime + 0.05, r = Math.random;
+  if (kind === 'drum') ensemble(b, kits[file].all, t, 0.85, r);
+  else if (kind === 'gong') gong(b, whole(buffers[file]), t, 1, r);
+  else horn(b, whole(buffers[file]), t, 1, r);
+}
+function playMoment(m) {
+  const { c, b } = begin(); MOMENTS[m](b, picks(), c.currentTime + 0.05, Math.random);
+}
+
+/* ---------- UI ---------- */
+let state = { picks: { drum: [], gong: [], horn: [] }, sel: { ...DEFAULTS } };
+try {
+  const s = JSON.parse(localStorage.getItem(STORE) || 'null');
+  if (s && s.picks && s.sel) state = { picks: { drum: s.picks.drum || [], gong: s.picks.gong || [], horn: s.picks.horn || [] }, sel: { ...DEFAULTS, ...s.sel } };
+} catch (e) { /* storage blocked: the page still works, picks are just not remembered */ }
+function save() { try { localStorage.setItem(STORE, JSON.stringify(state)); } catch (e) { /* ignore */ } }
+function summary() {
+  const parts = [], codes = [];
+  for (const k of ['drum', 'gong', 'horn']) {
+    state.picks[k].forEach(id => {
+      const n = CANDS[k].findIndex(c => c[0] === id) + 1;
+      if (n) { parts.push(KIND_NAME[k] + ' #' + n); codes.push(k + '_' + id); }
+    });
+  }
+  document.getElementById('summary').innerHTML = parts.length
+    ? 'Đã chọn: ' + parts.join(', ') + '<span id="codes">' + codes.join(', ') + '</span>'
+    : 'Chưa chọn bản nào.';
+}
+function dur(file) { return buffers[file] ? buffers[file].duration.toFixed(1) + ' giây' : 'chưa tải được'; }
+function buildRows() {
+  for (const k of ['drum', 'gong', 'horn']) {
+    const list = document.getElementById('list-' + k), s = sel(k);
+    CANDS[k].forEach(([id, title, author, note], i) => {
+      const file = k + '_' + id, n = i + 1, row = document.createElement('div');
+      row.className = 'row'; row.dataset.file = file;
+      const extra = k === 'drum' && kits[file] ? ', tách được ' + kits[file].n + ' điểm đánh' : '';
+      row.innerHTML = '<label class="pick"><input type="checkbox"> Chọn</label>' +
+        '<div class="name"><b></b><small></small></div>' +
+        '<button type="button" data-a="raw" disabled>Nghe gốc</button><button type="button" class="hung" data-a="big" disabled>Nghe hùng tráng</button>';
+      row.querySelector('b').textContent = KIND_NAME[k][0].toUpperCase() + KIND_NAME[k].slice(1) + ' #' + n + ' · ' + title;
+      row.querySelector('small').textContent = dur(file) + extra + ' · ' + note + ' · ' + author + ' · Freesound ' + id;
+      const cb = row.querySelector('input'); cb.checked = state.picks[k].includes(id);
+      cb.addEventListener('change', () => {
+        state.picks[k] = state.picks[k].filter(x => x !== id); if (cb.checked) state.picks[k].push(id);
+        save(); summary();
+      });
+      row.querySelector('[data-a=raw]').addEventListener('click', () => playRaw(file, k));
+      row.querySelector('[data-a=big]').addEventListener('click', () => playBig(file, k));
+      list.appendChild(row);
+      const o = document.createElement('option'); o.value = id; o.textContent = KIND_NAME[k][0].toUpperCase() + KIND_NAME[k].slice(1) + ' #' + n + ' · ' + title;
+      s.appendChild(o);
+    });
+    s.value = CANDS[k].some(c => c[0] === state.sel[k]) ? state.sel[k] : DEFAULTS[k];
+    s.addEventListener('change', () => { state.sel[k] = s.value; save(); });
+  }
+  summary();
+}
+document.getElementById('stop').addEventListener('click', stopAll);
+document.querySelectorAll('.btns button').forEach(btn => btn.addEventListener('click', () => playMoment(btn.dataset.m)));
+
+function showError() {
+  if (!failures.length) return;
+  const e = document.getElementById('err');
+  e.textContent = 'Không tải được ' + failures.length + ' mẫu:\n' + failures.join('\n') +
+    '\nHãy chạy ./prototypes/fetch-candidates.sh một lần để tải mẫu (thư mục prototypes/sound/candidates/ không nằm trong git), rồi mở trang qua: python3 -m http.server 8765 từ gốc repo, vào http://localhost:8765/prototypes/sound-audition.html';
+  e.classList.add('on');
+}
+async function loadAll() {
+  const c = ctx(), files = [];
+  for (const k of Object.keys(CANDS)) CANDS[k].forEach(([id]) => files.push(k + '_' + id));
+  await Promise.all(files.map(async f => {
+    try {
+      const r = await fetch('sound/candidates/' + f + '.mp3');
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      buffers[f] = await c.decodeAudioData(await r.arrayBuffer());
+      if (f.startsWith('drum_')) kits[f] = analyse(buffers[f]);
+    } catch (e) { failures.push(f + '.mp3: ' + (e && e.message || e)); }
+  }));
+}
+loadAll().then(() => {
+  buildRows(); showError();
+  document.querySelectorAll('.row').forEach(r => r.querySelectorAll('button').forEach(b => { b.disabled = !buffers[r.dataset.file]; }));
+  const ok = Object.keys(buffers).length, total = Object.values(CANDS).reduce((a, l) => a + l.length, 0);
+  document.getElementById('status').textContent = 'Đã tải ' + ok + '/' + total + ' mẫu.';
+  document.querySelectorAll('.btns button').forEach(b => { b.disabled = failures.length > 0 && !(picksReady()); });
+  window.__au.ready = true;
+}).catch(e => { failures.push(String(e)); showError(); window.__au.ready = true; });
+function picksReady() { const p = picks(); return !!(p.drum && p.gong && p.horn); }
+
+/* Test hook: offline renders of the moments with the current picks (used by the measurement script). */
+window.__au = {
+  ready: false, failures, buffers, kits, CANDS, MOMENTS,
+  async render(m, ids, seconds, clip) {
+    const sr = 44100, oc = new OfflineAudioContext(2, sr * seconds, sr);
+    const b = makeBus(oc, { clip: clip !== false });
+    const P = { drum: kits['drum_' + ids.drum], gong: buffers['gong_' + ids.gong], horn: buffers['horn_' + ids.horn] };
+    MOMENTS[m](b, P, 0.05, seeded(1234));
+    return oc.startRendering();
+  }
+};
+</script>
+</body>
+</html>

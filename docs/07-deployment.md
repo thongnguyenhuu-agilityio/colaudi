@@ -127,6 +127,10 @@ git tag final && git push --tags
 - [ ] Warm up Claude Code with one throwaway prompt
 - [ ] Tabs in order: game (production, `?presenter`), slides, Claude app, terminal, Upstash console
 - [ ] Network cable in; phone hotspot ready
+- [ ] Present the **Chrome tab** of the game, not the whole screen, with **"Also share tab audio"** ticked. Re-check after every switch back from slides, the Claude app or the terminal
+- [ ] Open `?presenter`, then press `M` twice to unlock and check the audio
+- [ ] Room A co-host and room B operator keep their mics muted while game audio plays (echo cancellation fights music)
+- [ ] Fallback if room B reports bad audio: press `M` and run the game silent. The game needs no sound
 
 **During the talk (co-host)**
 
