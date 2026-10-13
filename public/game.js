@@ -167,21 +167,99 @@ const SEAL = `<svg viewBox="0 0 160 160" role="img" aria-label="Ấn triện CLA
   </g>
 </svg>`;
 
-/* ---------- sound ---------- */
-let ac = null;
-function audio() { if (state.muted) return null; try { ac = ac || new (window.AudioContext || window.webkitAudioContext)(); return ac; } catch { return null; } }
+/* ---------- sound ----------
+   Everything is synthesised with Web Audio, no files. Laptop and projector speakers lose most energy below ~100 Hz,
+   so the war drum puts its punch in a saturated mid "skin" layer, and the chiêng uses inharmonic partials
+   detuned in pairs so they beat and shimmer. One master bus (reverb send + soft clipper) is built once per context.
+   The clipper is a WaveShaper, not a DynamicsCompressor: Chrome's compressor ducks the first ~50 ms of a new context,
+   which swallowed the drum on the start button. */
+const MASTER = 0.9, AHEAD = 0.01; // a little lookahead so a hit's attack is never cut by the render quantum
+let ac = null, bus = null;
+function audio() {
+  if (state.muted) return null;
+  try {
+    if (!ac) { ac = new (window.AudioContext || window.webkitAudioContext)(); bus = makeBus(ac); }
+    if (ac.state === 'suspended') ac.resume();
+    return ac;
+  } catch { return null; }
+}
+function makeBus(c) {
+  const master = c.createGain(), clip = c.createWaveShaper(), verb = c.createConvolver(), wet = c.createGain();
+  master.gain.value = MASTER; wet.gain.value = 0.4;
+  const knee = 0.7, soft = new Float32Array(2048); // linear up to the knee, then bends smoothly towards 1
+  for (let i = 0; i < soft.length; i++) {
+    const x = i / 1023.5 - 1, a = Math.abs(x);
+    soft[i] = a <= knee ? x : Math.sign(x) * (knee + (1 - knee) * Math.tanh((a - knee) / (1 - knee)));
+  }
+  clip.curve = soft;
+  const rate = c.sampleRate, ir = c.createBuffer(2, rate * 2.4 | 0, rate);
+  for (let ch = 0; ch < 2; ch++) {
+    const d = ir.getChannelData(ch);
+    for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / d.length) ** 3.5;
+  }
+  verb.buffer = ir;
+  const noise = c.createBuffer(1, rate, rate), nd = noise.getChannelData(0);
+  for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+  const curve = new Float32Array(1024);
+  for (let i = 0; i < curve.length; i++) curve[i] = Math.tanh(3 * (i / 511.5 - 1));
+  verb.connect(wet).connect(master); master.connect(clip).connect(c.destination);
+  return { master, verb, noise, curve };
+}
+function syncMute() {
+  if (bus) bus.master.gain.setTargetAtTime(state.muted ? 0 : MASTER, ac.currentTime, 0.03);
+}
+// One enveloped voice: src (→ … → out) → gain → master, plus a reverb send.
+function voice(c, src, t, peak, attack, decay, send = 0.2, out = src) {
+  const g = c.createGain();
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + attack);
+  g.gain.exponentialRampToValueAtTime(0.0001, t + attack + decay);
+  out.connect(g).connect(bus.master);
+  if (send) { const s = c.createGain(); s.gain.value = send; g.connect(s).connect(bus.verb); }
+  src.start(t); src.stop(t + attack + decay + 0.05);
+}
+function osc(c, type, from, to, t, glide) {
+  const o = c.createOscillator(); o.type = type;
+  o.frequency.setValueAtTime(from, t); o.frequency.exponentialRampToValueAtTime(to, t + glide);
+  return o;
+}
+function noise(c, t, freq, q, peak, decay, send) {
+  const n = c.createBufferSource(), f = c.createBiquadFilter();
+  n.buffer = bus.noise; f.type = 'bandpass'; f.frequency.value = freq; f.Q.value = q;
+  n.connect(f); voice(c, n, t, peak, 0.002, decay, send, f);
+}
 function tone(from, to, dur, type, vol, delay = 0) {
   const c = audio(); if (!c) return;
-  const t = c.currentTime + delay, o = c.createOscillator(), g = c.createGain();
-  o.type = type; o.frequency.setValueAtTime(from, t); o.frequency.exponentialRampToValueAtTime(to, t + dur);
-  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-  o.connect(g).connect(c.destination); o.start(t); o.stop(t + dur + 0.05);
+  const t = c.currentTime + AHEAD + delay;
+  voice(c, osc(c, type, from, to, t, dur), t, vol, 0.005, dur, 0);
 }
 const sfx = {
-  drum(d = 0) { tone(140, 48, 0.35, 'sine', 0.9, d); },
-  roll() { [0, .22, .5].forEach(d => sfx.drum(d)); },
+  // Trống trận: low body + saturated skin + stick slap. v is the accent (1 = normal hit).
+  drum(d = 0, v = 1) {
+    const c = audio(); if (!c) return;
+    const t = c.currentTime + AHEAD + d, p = 1 + (Math.random() - 0.5) * 0.06;
+    voice(c, osc(c, 'sine', 165 * p, 52, t, 0.22), t, 0.9 * v, 0.004, 0.5 + 0.2 * v, 0.25);
+    const skin = c.createWaveShaper(), so = osc(c, 'triangle', 260 * p, 118 * p, t, 0.09);
+    skin.curve = bus.curve; so.connect(skin);
+    voice(c, so, t, 0.6 * v, 0.003, 0.22, 0.3, skin);
+    noise(c, t, 1900, 0.9, 0.6 * v, 0.05, 0.15);
+  },
+  // An accelerating war-drum figure that lands on one big accented stroke (~1.3 s, under the battle-cry overlay).
+  roll() {
+    [[0, .7], [.2, .55], [.38, .75], [.53, .6], [.66, .8], [.77, .65], [.86, .85], [.94, .75], [1.01, .9]]
+      .forEach(([d, v]) => sfx.drum(d, v));
+    sfx.drum(1.2, 1.35); sfx.drum(1.21, 0.9);
+  },
   bad() { tone(110, 70, 0.25, 'sawtooth', 0.12); },
-  gong() { [196, 293, 415, 587].forEach((fq, i) => tone(fq, fq * 0.98, 3.4, 'sine', 0.26 / (i + 1))); }
+  // Chiêng: a low drum under an inharmonic, beating gong body; high partials die first.
+  gong(d = 0) {
+    const c = audio(); if (!c) return;
+    const t = c.currentTime + AHEAD + d, f = 128;
+    sfx.drum(d, 1.1);
+    [[1, 0.34, 6], [1.012, 0.24, 5.5], [1.98, 0.2, 4.2], [2.01, 0.12, 4], [2.76, 0.13, 3], [3.95, 0.09, 2.2],
+     [5.43, 0.06, 1.6], [6.9, 0.04, 1.1], [8.6, 0.03, 0.8]]
+      .forEach(([r, a, dec]) => voice(c, osc(c, 'sine', f * r * 1.015, f * r, t, 0.4), t, a, 0.006, dec, 0.55));
+    noise(c, t, 950, 1.2, 0.3, 0.09, 0.4);
+  }
 };
 
 /* ---------- leaderboard client ----------
@@ -564,7 +642,7 @@ document.addEventListener('click', e => {
 document.getElementById('home').onclick = e => { e.currentTarget.blur(); go('title'); };
 document.getElementById('boardBtn').onclick = e => { e.currentTarget.blur(); go('board'); };
 const sndBtn = document.getElementById('snd');
-const syncSnd = () => { sndBtn.textContent = 'Âm thanh: ' + (state.muted ? 'tắt' : 'bật'); };
+const syncSnd = () => { sndBtn.textContent = 'Âm thanh: ' + (state.muted ? 'tắt' : 'bật'); syncMute(); };
 sndBtn.onclick = () => { sndBtn.blur(); state.muted = !state.muted; syncSnd(); };
 
 document.addEventListener('keydown', e => {

@@ -183,6 +183,7 @@ Sáu quyết định kiến trúc (ADR-01 đến ADR-06), kèm sơ đồ, API v�
 | FR-13 | `api/leaderboard.js` → `DELETE` | `tests/api.test.js` |
 | NFR-06 | `api/leaderboard.js` → kiểm tra đầu vào | `tests/api.test.js` (5 trường hợp từ chối) |
 | FR-06, FR-14, FR-15, FR-19 | `public/game.js` → cảnh `surrender`, `crown`, `finale`, ấn `SEAL` | `e2e/leaderboard.spec.js` (chế độ nhanh tới màn "Claude") |
+| FR-18 | `public/game.js` → khối `sound` (`sfx.drum`, `roll`, `gong`, `syncMute`): tổng hợp bằng Web Audio, không file âm thanh | Nghe thử bằng loa máy chiếu trong buổi chạy thử; tắt tiếng (M) cắt cả tiếng ngân |
 
 ---
 
