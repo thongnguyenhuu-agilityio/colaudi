@@ -1,0 +1,26 @@
+#!/bin/sh
+# Pre-commit gate for Cờ Lau Đi. Enabled by `npm install` (prepare script sets core.hooksPath=.githooks).
+# Checks the working tree, so stash unstaged changes first if they would hide a failure.
+set -e
+cd "$(git rev-parse --show-toplevel)"
+fail() { echo "pre-commit: $1" >&2; exit 1; }
+
+[ -x node_modules/.bin/vitest ] || fail "dev dependencies missing. Run: npm install"
+
+# Runtime stays dependency-free: only devDependencies are allowed.
+node -e 'process.exit(require("./package.json").dependencies ? 1 : 0)' \
+  || fail "package.json has \"dependencies\". Runtime dependencies are not allowed; use devDependencies."
+
+# score.js is shared by browser and server and must stay pure.
+if grep -nE '\b(document|window|fetch|localStorage|sessionStorage|navigator|XMLHttpRequest|process)\b' public/score.js; then
+  fail "public/score.js must stay pure (no DOM, no network, no env)."
+fi
+
+# Every scoring change comes with a test.
+staged=$(git diff --cached --name-only)
+if echo "$staged" | grep -qx 'public/score.js' && ! echo "$staged" | grep -qx 'tests/score.test.js'; then
+  [ "$ALLOW_SCORE_WITHOUT_TEST" = 1 ] \
+    || fail "public/score.js changed without tests/score.test.js. Add the test (or ALLOW_SCORE_WITHOUT_TEST=1 for comment-only edits)."
+fi
+
+npm test --silent || fail "npm test failed."

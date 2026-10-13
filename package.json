@@ -1,0 +1,22 @@
+{
+  "name": "p-colaudi",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Cờ Lau Đi: a demo game for the internal Claude talk, with a live leaderboard (Bảng vàng).",
+  "type": "module",
+  "engines": {
+    "node": "22.x"
+  },
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "smoke": "node scripts/smoke.mjs",
+    "board": "node scripts/board.mjs",
+    "prepare": "git config core.hooksPath .githooks"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.47.2",
+    "vitest": "2.1.9"
+  }
+}

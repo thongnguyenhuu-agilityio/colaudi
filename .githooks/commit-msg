@@ -1,0 +1,14 @@
+#!/bin/sh
+# Commit messages: Conventional Commits, English, subject <= 72 characters.
+subject=$(grep -v '^#' "$1" | head -n 1)
+case "$subject" in Merge\ *|Revert\ *|fixup!\ *|squash!\ *) exit 0 ;; esac
+fail() { printf 'commit-msg: %s\n  got: %s\n' "$1" "$subject" >&2; exit 1; }
+
+echo "$subject" | grep -qE '^(feat|fix|test|docs|refactor|perf|style|build|ci|chore|revert)(\([a-z0-9._/-]+\))?!?: [^ ].*' \
+  || fail "use Conventional Commits, e.g. 'fix: refuse runs without a recorded start' (types: feat fix test docs refactor perf style build ci chore revert)."
+[ "$(printf %s "$subject" | wc -m)" -le 72 ] || fail "subject longer than 72 characters."
+# Vietnamese-only letters mean the message was not written in English.
+if printf %s "$subject" | grep -q '[ăâđêôơưĂÂĐÊÔƠƯàáạảãằắặẳẵầấậẩẫèéẹẻẽềếệểễìíịỉĩòóọỏõồốộổỗờớợởỡùúụủũừứựửữỳýỵỷỹ]'; then
+  fail "write the commit message in English (UI copy stays Vietnamese, commit messages do not)."
+fi
+exit 0
