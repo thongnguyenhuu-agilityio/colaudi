@@ -155,3 +155,20 @@ test('a hidden tab fades out and suspends the audio, a visible tab resumes it', 
   await setHidden(false);
   await expect.poll(() => page.evaluate(() => window.__ctx.state)).toBe('running');
 });
+
+// Offline render of the real coronation (docs/09 "Red-team review 2"): one climax at step 2, and the text breathes.
+// On the 42a5683 build the step-2/3 gongs rang under steps 4 to 6 and this failed.
+test('the coronation has one climax at step 2 and is quiet under steps 5 and 6', async ({ page }) => {
+  await page.goto('/?presenter&soundtest');
+  expect(await page.evaluate(() => window.__sound.ready())).toBe('ok');
+  const r = await page.evaluate(async () => {
+    const script = [[0, '@scene'], ...Array.from({ length: 8 }, (_, i) => [i * 2.6, 'crown', i])];
+    const { data, sr } = await window.__sound.render(script, 24);
+    const level = (a, b) => { let p = 0, s = 0, n = 0; for (let i = Math.round(a * sr); i < Math.round(b * sr); i++) { p = Math.max(p, Math.abs(data[0][i])); s += data[0][i] ** 2; n++; } return [p, Math.sqrt(s / n)]; };
+    return Array.from({ length: 8 }, (_, i) => level(i * 2.6 + 0.1, i * 2.6 + 2.6));
+  });
+  const peaks = r.map(x => x[0]), rms = r.map(x => x[1]);
+  expect(peaks[2]).toBe(Math.max(...peaks)); // the tutti is the loudest step
+  expect(rms[5]).toBeLessThan(0.01); // about -40 dBFS: nothing rings under the text
+  expect(rms[6]).toBeLessThan(0.01);
+});
