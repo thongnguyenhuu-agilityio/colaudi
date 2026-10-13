@@ -263,10 +263,10 @@ function verbOf(s) { // one convolver per scene, so a scene change also silences
 }
 function track(o, src) {
   o.srcs.add(src);
-  src.addEventListener('ended', () => {
+  src.onended = () => { // onended, not addEventListener: old webkit nodes are not EventTargets
     o.srcs.delete(src); try { src.disconnect(); } catch { /* gone */ }
     if (o.dead && !o.srcs.size) { try { o.g.disconnect(); } catch { /* gone */ } o.s.groups.delete(o); }
-  });
+  };
 }
 // Fade a group out from `at` (default now) over `sec`, then stop its sources.
 function fade(o, sec, at) {
@@ -457,8 +457,10 @@ async function loadSamples() {
       if (buf[n]) return;
       const r = await fetch('sound/' + n + '.mp3', { signal: AbortSignal.timeout ? AbortSignal.timeout(20000) : undefined });
       if (!r.ok) throw new Error(n + ': HTTP ' + r.status);
-      buf[n] = await c.decodeAudioData(await r.arrayBuffer());
+      const ab = await r.arrayBuffer(); // callback form: old Safari's decodeAudioData returns no promise
+      buf[n] = await new Promise((ok, bad) => c.decodeAudioData(ab, ok, bad));
     }));
+    if (SAMPLE_FILES.some(n => !buf[n])) throw new Error('sample missing');
     sampleState = 'ok';
   } catch { sampleState = 'failed'; }
   syncSnd();
@@ -484,10 +486,10 @@ document.addEventListener('visibilitychange', () => {
   } catch { /* never throw */ }
 });
 // The first key or click wakes the context (browsers keep it suspended until then).
-const unlock = () => { try { if (ac && !state.muted && !document.hidden && ac.state === 'suspended') ac.resume().catch(() => {}); } catch { /* never throw */ } };
+const unlock = () => { try { if (ac && !state.muted && !document.hidden && ac.state !== 'running') ac.resume().catch(() => {}); } catch { /* never throw */ } };
 addEventListener('pointerdown', unlock, true); addEventListener('keydown', unlock, true);
 // Measurement hook for the offline renders in docs/09 §6 (only with ?soundtest).
-if (new URLSearchParams(location.search).has('soundtest')) {
+if (PRESENTER && new URLSearchParams(location.search).has('soundtest')) {
   window.__sound = {
     ready: async () => { await loadSamples(); return sampleState; },
     // script: [[atSeconds, cueName | '@scene', a, b], ...] -> { sr, data: [L, R] } rendered through the real bus
@@ -862,7 +864,7 @@ function pick(i) {
     if (state.mode === 'full' && wins() >= BATTLES) state.finishedAt = Date.now();
     clearTimers(); render(); shout();
   } else {
-    state.wrong.push(i); sfx.cue('wrong'); render();
+    state.wrong.push(i); sfx.silence(); sfx.cue('wrong'); render(); // silence: the restarted bar must not hear the old ticks
   }
 }
 function shout() {
