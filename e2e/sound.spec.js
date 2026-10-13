@@ -172,3 +172,25 @@ test('the coronation has one climax at step 2 and is quiet under steps 5 and 6',
   expect(rms[5]).toBeLessThan(0.01); // about -40 dBFS: nothing rings under the text
   expect(rms[6]).toBeLessThan(0.01);
 });
+
+// iPhone: Web Audio is muted by the ring/silent switch unless the page asks for a "playback" audio session.
+test('the page asks iOS for a playback audio session', async ({ page }) => {
+  await page.addInitScript(() => { Object.defineProperty(navigator, 'audioSession', { value: { type: 'auto' }, configurable: true }); });
+  await page.goto('/');
+  expect(await page.evaluate(() => navigator.audioSession.type)).toBe('playback');
+});
+
+// iPhone: pointerdown is not a user activation there, so the context must also be resumed on touchend/click.
+test('a touchend resumes a suspended audio context', async ({ page }) => {
+  await page.addInitScript(() => {
+    window.__resumes = 0;
+    const resume = AudioContext.prototype.resume;
+    AudioContext.prototype.resume = function () { window.__resumes++; return resume.call(this); };
+    Object.defineProperty(AudioContext.prototype, 'state', { get() { return 'suspended'; }, configurable: true });
+  });
+  await page.goto('/?presenter'); // the presenter page creates its context at load to decode the samples
+  await expect.poll(() => page.evaluate(() => document.getElementById('snd')?.textContent || document.body.textContent.includes('Âm thanh'))).toBeTruthy();
+  const before = await page.evaluate(() => window.__resumes);
+  await page.evaluate(() => document.body.dispatchEvent(new Event('touchend', { bubbles: true })));
+  expect(await page.evaluate(() => window.__resumes)).toBeGreaterThan(before);
+});

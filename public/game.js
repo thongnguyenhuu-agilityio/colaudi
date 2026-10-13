@@ -230,6 +230,9 @@ function makeBus(c, o = {}) {
   for (let i = 0; i < curve.length; i++) curve[i] = Math.tanh(3 * (i / 511.5 - 1));
   return { master, ir: hallIR(c), noise, curve };
 }
+// iOS Safari routes Web Audio through the "ambient" session, which the ring/silent switch mutes; most iPhones sit on
+// silent. Asking for a "playback" session (Safari 16.4+) makes the game audible like a video would be.
+try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch { /* not supported */ }
 function ensureCtx() {
   if (!ac) { ac = new (window.AudioContext || window.webkitAudioContext)(); bus = makeBus(ac); }
   return ac;
@@ -516,7 +519,8 @@ document.addEventListener('visibilitychange', () => {
 });
 // The first key or click wakes the context (browsers keep it suspended until then).
 const unlock = () => { try { if (ac && !state.muted && !document.hidden && ac.state !== 'running') ac.resume().catch(() => {}); } catch { /* never throw */ } };
-addEventListener('pointerdown', unlock, true); addEventListener('keydown', unlock, true);
+// iOS only grants audio on touchend/click (pointerdown is not a user activation there).
+['pointerdown', 'touchend', 'click', 'keydown'].forEach(e => addEventListener(e, unlock, true));
 // Measurement hook for the offline renders in docs/09 §6 (only with ?soundtest).
 if (PRESENTER && new URLSearchParams(location.search).has('soundtest')) {
   window.__sound = {
