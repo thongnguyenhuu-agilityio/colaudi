@@ -4,77 +4,77 @@ import { pointsFor, totalPoints, formatTime, MAX_POINTS, BATTLES } from './score
 /* ---------- content ---------- */
 const LORDS = [
   { id: 'xuong-xi', name: 'Ngô Xương Xí', land: 'Bình Kiều', alias: 'Sứ quân Codebase Sương Mù',
-    taunt: 'Ba trăm file, không một dòng tài liệu. Có dám bước vào không?',
+    taunt: 'Ba trăm file, không một dòng tài liệu. Kẻ nào dám bước vào?',
     q: 'Ngày đầu nhận một dự án lạ hoắc. Chiêu nào?',
     opts: ['Thức trắng đọc hết 300 file', 'Nhờ Claude đọc và giải thích kiến trúc, chưa sửa gì vội', 'Ngồi chờ senior rảnh'],
-    ok: 1, bad: { 0: 'Trời sáng mới đọc tới file thứ 12. Sứ quân cười khẩy.', 2: 'Senior hẹn... quý sau.' },
+    ok: 1, bad: { 0: 'Rạng sáng mới đọc tới file thứ 12. Sứ quân cười khẩy.', 2: 'Senior hẹn sang quý sau. Giặc nào chờ được?' },
     tip: 'Bước <b>Explore</b>: cho Claude đọc code và giải thích trước, chưa cho sửa gì.' },
   { id: 'canh-thac', name: 'Đỗ Cảnh Thạc', land: 'Đỗ Động Giang', alias: 'Sứ quân Bug Ma',
-    taunt: 'Lúc có lúc không. Trên máy tôi chạy ngon mà!',
+    taunt: 'Khi hiện khi ẩn. Trên máy tại hạ, chạy ngon lành!',
     q: 'Bug chập chờn, đoán mãi không ra. Chiêu nào?',
     opts: ['Rắc console.log khắp nơi', 'Restart server rồi cầu trời', 'Bắt Claude viết test tái hiện bug trước, rồi mới sửa'],
-    ok: 2, bad: { 0: 'Log còn dài hơn code. Bug vẫn chơi trốn tìm.', 1: 'Trời nghe. Nhưng 2 giờ sáng thì trời cũng ngủ.' },
+    ok: 2, bad: { 0: 'Log còn dài hơn code. Bug vẫn chơi trốn tìm.', 1: 'Trời nghe. Nhưng canh tư thì trời cũng ngủ.' },
     tip: 'Cho agent một cách <b>tự kiểm chứng</b>: test đỏ trước, xanh sau. Có test thì mới dám giao việc.' },
   { id: 'cong-han', name: 'Kiều Công Hãn', land: 'Phong Châu', alias: 'Sứ quân Tính Năng Khổng Lồ',
-    taunt: 'Một ticket, mười hai màn hình, hạn chót thứ Sáu.',
+    taunt: 'Một ticket, mười hai màn hình, hạn chót thứ Sáu. Ai gánh nổi?',
     q: 'Tính năng to như núi. Mở đầu thế nào?',
     opts: ['Bật Plan mode, duyệt kế hoạch rồi mới cho code', 'Prompt một câu: “làm hết đi”', 'Code luôn, sai đâu sửa đó'],
-    ok: 0, bad: { 1: 'Claude làm hết thật. Diff 4.000 dòng. Chúc review vui vẻ.', 2: 'Sửa chỗ này, vỡ chỗ kia. Vòng lặp vô tận.' },
+    ok: 0, bad: { 1: 'Claude làm hết thật. Diff bốn nghìn dòng, review xong tóc đã bạc.', 2: 'Vá chỗ này, vỡ chỗ kia. Vòng lặp chẳng có hồi kết.' },
     tip: '<b>Plan mode</b> (Shift+Tab): Claude chỉ đọc và đề xuất. Duyệt kế hoạch trước, rồi mới động vào code.' },
   { id: 'nguyen-khoan', name: 'Nguyễn Khoan', land: 'Tam Đái', alias: 'Sứ quân Quên Quy Ước',
-    taunt: 'Dặn dùng pnpm, hắn lại npm. Dặn tab, hắn lại space.',
+    taunt: 'Dặn dùng pnpm, hắn lại npm. Dặn tab, hắn lại space. Nào chịu nghe!',
     q: 'AI cứ quên quy ước của team. Chiêu nào?',
     opts: ['Nhắc lại trong mọi prompt', 'Đập bàn, đổi tool', 'Ghi quy ước vào CLAUDE.md'],
     ok: 2, bad: { 0: 'Ba tuần sau đã thuộc lòng prompt. AI vẫn quên.', 1: 'Tool mới cũng quên. Còn cái bàn thì gãy.' },
     tip: '<b>CLAUDE.md</b>: luật luôn bật, tự nạp vào mọi phiên làm việc. Viết ngắn, viết đúng.' },
   { id: 'nhat-khanh', name: 'Ngô Nhật Khánh', land: 'Đường Lâm', alias: 'Sứ quân Format Lộn Xộn',
-    taunt: 'Dấu chấm phẩy lúc có lúc không. Ai làm gì được?',
+    taunt: 'Dấu chấm phẩy khi có khi không. Thiên hạ biết làm sao?',
     q: 'Muốn code lúc nào cũng được format, không ngoại lệ?',
     opts: ['Hook tự chạy formatter sau mỗi lần sửa file', 'Năn nỉ Claude nhớ format', 'Review tay từng dấu cách'],
     ok: 0, bad: { 1: 'Claude hứa. Mười lần nhớ chín. Sứ quân sống nhờ lần thứ mười.', 2: 'Mắt đã nhòe trước khi PR kịp merge.' },
     tip: 'Việc <b>phải luôn xảy ra</b> thì giao cho <b>hook</b>: script chạy chắc chắn, không phụ thuộc trí nhớ của model.' },
   { id: 'ly-khue', name: 'Lý Khuê', land: 'Siêu Loại', alias: 'Sứ quân Checklist Deploy',
-    taunt: 'Mười bảy bước deploy, tuần nào cũng làm, lần nào cũng quên bước 9.',
+    taunt: 'Mười bảy bước deploy, tuần nào cũng làm, lần nào cũng quên bước thứ chín.',
     q: 'Quy trình lặp lại hằng tuần. Xử thế nào?',
     opts: ['Copy prompt dài từ Notes mỗi lần', 'Đóng gói thành Skill, gọi bằng /deploy', 'Giao cho thực tập sinh'],
-    ok: 1, bad: { 0: 'Notes có 14 bản. Bản nào mới nhất? Không ai biết.', 2: 'Thực tập sinh hết kỳ. Bước 9 lại bị quên.' },
+    ok: 1, bad: { 0: 'Notes có mười bốn bản. Bản nào mới nhất? Không ai hay.', 2: 'Thực tập sinh mãn kỳ. Bước thứ chín lại bị quên.' },
     tip: '<b>Skill</b>: quy trình và kiến thức đóng gói sẵn, chỉ nạp khi cần, gọi bằng <b>/tên</b>, chia sẻ cho cả team.' },
   { id: 'nguyen-sieu', name: 'Nguyễn Siêu', land: 'Tây Phù Liệt', alias: 'Sứ quân Năm Việc Một Lúc',
-    taunt: 'Năm ticket. Một người. Một ngày.',
+    taunt: 'Năm ticket. Một người. Một ngày. Há có thể?',
     q: 'Năm việc độc lập cần xong trong hôm nay?',
     opts: ['Một phiên làm cả năm việc', 'Chạy song song nhiều phiên trên git worktree, mỗi phiên một việc', 'Tăng ca tới sáng'],
-    ok: 1, bad: { 0: 'Năm việc giẫm chân nhau trong cùng một thư mục. Loạn.', 2: 'Sáng ra xong hai việc và một quầng thâm.' },
+    ok: 1, bad: { 0: 'Năm việc giẫm chân nhau trong một thư mục. Đại loạn.', 2: 'Rạng sáng xong hai việc, thêm một quầng thâm.' },
     tip: '<b>Worktree</b> giữ các phiên song song không giẫm file của nhau. Việc của người cầm quân là review.' },
   { id: 'thu-tiep', name: 'Nguyễn Thủ Tiệp', land: 'Tiên Du', alias: 'Sứ quân Context Phình To',
     taunt: 'Một phiên chat kéo dài từ đầu sprint. Sương mù đã phủ kín đầu AI.',
     q: 'Phiên làm việc dài, AI bắt đầu lú lẫn. Chiêu nào?',
     opts: ['GÕ IN HOA CHO NÓ TỈNH', 'Dán lại toàn bộ yêu cầu từ đầu', '/clear giữa các việc, giao phần tìm hiểu cho subagent'],
-    ok: 2, bad: { 0: 'NÓ KHÔNG TỈNH. NÓ CHỈ THẤY NGƯƠI ĐANG GIẬN.', 1: 'Context phình thêm. Sứ quân mạnh thêm.' },
+    ok: 2, bad: { 0: 'NÓ KHÔNG TỈNH. NÓ CHỈ BIẾT CÓ NGƯỜI ĐANG GIẬN.', 1: 'Context phình thêm. Sứ quân mạnh thêm.' },
     tip: 'Context sạch là đòn bẩy lớn nhất: <b>/clear</b>, <b>/compact</b>, và <b>subagent</b> làm việc trong context riêng.' },
   { id: 'la-duong', name: 'Lã Đường', land: 'Tế Giang', alias: 'Sứ quân Ticket Jira',
-    taunt: 'Yêu cầu trong Jira, thiết kế trong Figma, dữ liệu trong DB. Copy-paste tới bao giờ?',
+    taunt: 'Yêu cầu ở Jira, thiết kế ở Figma, dữ liệu ở DB. Copy-paste đến bao giờ cho cùng?',
     q: 'Thông tin nằm ngoài repo. Chiêu nào?',
     opts: ['Kết nối MCP để Claude tự đọc ticket, thiết kế, dữ liệu', 'Chụp màn hình từng trang', 'Đọc to cho Claude nghe'],
-    ok: 0, bad: { 1: 'Ảnh thứ 37 bị mờ. Đúng trang quan trọng nhất.', 2: 'Hàng xóm đã thuộc spec. Claude thì chưa.' },
+    ok: 0, bad: { 1: 'Ảnh thứ ba mươi bảy bị mờ, đúng trang hệ trọng nhất.', 2: 'Hàng xóm đã thuộc spec. Claude thì chưa.' },
     tip: '<b>MCP</b> nối Claude với công cụ ngoài repo: Jira, cơ sở dữ liệu, Figma, tài liệu nội bộ.' },
   { id: 'bach-ho', name: 'Phạm Bạch Hổ', land: 'Đằng Châu', alias: 'Sứ quân PR Nghìn Dòng',
-    taunt: 'PR ba nghìn dòng. Ai review nổi thì cứ review.',
+    taunt: 'PR ba nghìn dòng. Ai review nổi, cứ đến đây!',
     q: 'AI viết nhanh hơn người review kịp đọc. Chiêu nào?',
     opts: ['Chia nhỏ việc, mỗi bước một commit xanh test', 'Gõ “LGTM” rồi approve', 'Bắt AI viết chậm lại'],
-    ok: 0, bad: { 1: 'Production đã ghi nhận lời khen. Và cả bug.', 2: 'Vấn đề không nằm ở tốc độ viết.' },
+    ok: 0, bad: { 1: 'Production đã nhận lời khen. Nhận luôn cả bug.', 2: 'Gốc rễ chẳng nằm ở tốc độ viết.' },
     tip: 'Khi viết code gần như miễn phí, <b>sự chú ý của người review</b> là nút thắt. Thiết kế việc để dễ review.' },
   { id: 'kieu-thuan', name: 'Kiều Thuận', land: 'Hồi Hồ', alias: 'Sứ quân rm -rf',
-    taunt: 'Một lệnh thôi, cả thành sụp đổ.',
+    taunt: 'Chỉ một lệnh, cả thành sụp đổ.',
     q: 'Sợ agent chạy lệnh nguy hiểm. Chiêu nào?',
     opts: ['Tin tưởng tuyệt đối, cấp mọi quyền', 'Rút dây mạng mỗi lần chạy', 'Đặt luật quyền hạn và hook chặn lệnh nguy hiểm'],
-    ok: 2, bad: { 0: 'Can đảm. Nhưng không khôn ngoan.', 1: 'An toàn tuyệt đối. Năng suất cũng bằng không.' },
+    ok: 2, bad: { 0: 'Có dũng mà thiếu mưu.', 1: 'An toàn tuyệt đối. Năng suất cũng bằng không.' },
     tip: '<b>Permission mode</b>, luật deny, sandbox và hook: agent chỉ làm được những gì được cho phép.' },
   { id: 'tran-lam', name: 'Trần Lãm', land: 'Bố Hải Khẩu', alias: 'Sứ quân Senior Reviewer', ally: true,
-    taunt: 'Không cần giao chiến. Một bên có kinh nghiệm, một bên có cờ lau: hợp lại mới mạnh.',
+    taunt: 'Chẳng cần giao chiến. Một bên giàu kinh nghiệm, một bên có cờ lau: hợp lại ắt mạnh.',
     note: 'Sử chép: Trần Lãm nhận Đinh Bộ Lĩnh làm con nuôi và trao lại binh quyền.',
     q: 'Gặp vị tiền bối giàu kinh nghiệm. Nên làm gì?',
     opts: ['Thay ông bằng AI cho nhanh', 'Kết đồng minh: AI viết, người giàu kinh nghiệm review', 'Né ông ra mà đi'],
-    ok: 1, bad: { 0: 'Sai lầm lớn nhất của cả chiến dịch.', 2: 'Rồi ai bắt mấy lỗi logic tinh vi?' },
+    ok: 1, bad: { 0: 'Đại sai lầm của cả chiến dịch.', 2: 'Rồi ai bắt nổi những lỗi logic tinh vi?' },
     tip: 'Claude không thay người giỏi. <b>Claude cho người giỏi thêm quân.</b>' }
 ];
 const POS = [[1,1],[1,2],[1,3],[1,4],[2,4],[3,4],[4,4],[4,3],[4,2],[4,1],[3,1],[2,1]];
@@ -621,10 +621,10 @@ const scenes = {
   intro: () => `<section class="scene story">
       <div class="eyebrow">Hoa Lư · thế kỷ X</div>
       <h2>Cậu bé chăn trâu và lá cờ lau</h2>
-      <p>Bên sông Hoàng Long, cậu bé Đinh Bộ Lĩnh chăn trâu cùng lũ trẻ trong làng. Không có cờ, cậu bẻ bông lau làm cờ, bày trận đánh nhau như thật.</p>
-      <p>Mỗi lần xuất quân, cả bọn hô vang:</p>
+      <p>Thuở ấy, bên sông Hoàng Long, cậu bé Đinh Bộ Lĩnh chăn trâu cùng lũ trẻ trong làng. Không cờ xí, cậu bẻ bông lau làm cờ, bày trận như thật.</p>
+      <p>Mỗi phen xuất quân, cả bọn hô vang:</p>
       <div class="cry">“Cờ Lau” đi!</div>
-      <p>Lớn lên, đất nước rơi vào loạn mười hai sứ quân. Mỗi sứ quân giữ một vùng. Kỳ lạ thay, sứ quân nào cũng mang đúng một nỗi khổ của nghề phần mềm.</p>
+      <p>Đến khi trưởng thành, thiên hạ loạn mười hai sứ quân, mỗi người chiếm giữ một cõi. Lạ thay, sứ quân nào cũng mang đúng một nỗi khổ của nghề phần mềm.</p>
       ${state.mode === 'full' ? '<p class="keys">Đánh đủ 12 trận: đúng ngay lần đầu được 3 điểm, sai một lần được 1 điểm, sai hai lần được 0 điểm. Bằng điểm thì ai nhanh hơn xếp trên.</p>' : ''}
       <div class="row"><button class="btn" data-primary data-act="map">Xuất quân</button></div>
     </section>`,
@@ -694,7 +694,7 @@ const scenes = {
     }).join('');
     return `<section class="scene surrender">
       <div class="eyebrow">Năm 967</div>
-      <h2>Nghe tiếng hô “Cờ Lau” đi, các sứ quân còn lại lần lượt xin quy phục</h2>
+      <h2>Nghe tiếng hô “Cờ Lau” đi, các sứ quân còn lại khiếp vía, lần lượt xin quy phục</h2>
       <div class="mini">${tiles}</div>
       <div class="row"><button class="btn" data-primary data-act="crown">Lên ngôi</button></div>
     </section>`;
@@ -749,10 +749,10 @@ const scenes = {
       </div>
       <div class="edict">
         <div class="eyebrow" data-at="0">Năm Mậu Thìn · 968 · Kinh đô Hoa Lư</div>
-        <p class="lead" data-at="1">Mười hai sứ quân quy phục. Giang sơn thu về một mối. Tại Hoa Lư, Đinh Bộ Lĩnh lên ngôi.</p>
+        <p class="lead" data-at="1">Mười hai sứ quân đều phục, giang sơn thu về một mối. Bấy giờ tại Hoa Lư, Đinh Bộ Lĩnh lên ngôi.</p>
         <div data-at="2"><div class="han" lang="zh-Hant">大勝明皇帝</div><h2>Đại Thắng Minh Hoàng Đế</h2></div>
         <div class="claim" data-at="3">Không xưng <s>Vương</s>. Xưng <em>Hoàng Đế</em>.</div>
-        <p class="why" data-at="4">Lần đầu tiên người đứng đầu nước Việt xưng <b>Hoàng đế</b>, đặt nước mình ngang hàng phương Bắc. Nhà Tống chỉ phong tước vương, nhưng trong cõi Nam, các triều đại về sau đều nối theo.</p>
+        <p class="why" data-at="4">Lần đầu tiên người đứng đầu nước Việt xưng <b>Hoàng đế</b>, ngang hàng phương Bắc. Nhà Tống chỉ phong tước vương, song trong cõi Nam, các triều đại về sau đều noi theo.</p>
         <div class="tablets" data-at="5">
           <div class="tablet"><span>Quốc hiệu</span><b>Đại Cồ Việt</b></div>
           <div class="tablet"><span>Kinh đô</span><b>Hoa Lư</b></div>
@@ -772,14 +772,14 @@ const scenes = {
         <span class="mid" data-at="2" data-until="2">C<i>ờ</i> · lau · <i>Đi</i> → de</span>
         <span class="claude" data-at="3">Claude</span>
       </div>
-      <p class="born" data-at="3">Năm 2023, Claude ra đời.</p>
+      <p class="born" data-at="3">Năm 2023, Claude xuất thế.</p>
       <article class="decree" data-at="4">
         <header><span>Hoa Lư truyền hịch</span><h3>Hịch Cờ Lau</h3></header>
-        <p>Từng nghe: thuở Hoa Lư, trẻ chăn trâu bẻ lau làm cờ mà dựng nên nghiệp đế. Quân dù nhiều hay ít, thắng bại đều cốt ở luyện tập trước khi ra trận.</p>
-        <p>Nay mười hai sứ quân lại nổi: code rối như tơ vò, lỗi ẩn như bóng ma, hạn chót dồn như thác lũ. Bao bữa quên ăn, bao đêm thức trắng, chỉ mong sớm dẹp yên bờ cõi.</p>
+        <p>Từng nghe: thuở Hoa Lư, trẻ chăn trâu bẻ lau làm cờ mà dựng nên nghiệp đế. Quân dẫu nhiều hay ít, thắng bại đều cốt ở chỗ luyện tập trước khi ra trận.</p>
+        <p>Nay mười hai sứ quân lại nổi: code rối như tơ vò, lỗi ẩn như bóng ma, hạn chót dồn như nước lũ. Bao bữa quên ăn, bao đêm trắng mắt, lòng những mong sớm dẹp yên bờ cõi.</p>
         <p class="address" data-at="5">Hỡi tướng sỹ!</p>
-        <p data-at="5">Chúng ta chớ lấy việc gõ tay từng dòng làm siêng năng, chớ lấy việc vá lỗi qua loa làm công trạng, chớ vì quen lối cũ mà ngại binh pháp mới. Giặc đã tới ải, lẽ nào khoanh tay mà nhìn?</p>
-        <p data-at="5">Nay lá cờ lau mới đã trong tay. Cùng nhau luyện binh pháp: hỏi cho tường, lập kế rồi hãy đánh, thử cho chắc rồi mới tin. Được vậy thì giặc nào cũng dẹp, ải nào cũng qua.</p>
+        <p data-at="5">Chúng ta chớ lấy việc gõ tay từng dòng làm cần mẫn, chớ lấy việc vá lỗi qua loa làm công trạng, chớ vì quen lối cũ mà ngại binh pháp mới. Giặc đã tới ải, há khoanh tay mà nhìn?</p>
+        <p data-at="5">Nay lá cờ lau mới đã trong tay. Hãy cùng luyện binh pháp: hỏi cho tường, lập kế rồi hãy đánh, thử cho chắc rồi mới tin. Được vậy, giặc nào chẳng dẹp, ải nào chẳng qua.</p>
         <footer data-at="5"><span>Bố cáo khắp nơi, ai nấy đều hay.</span><div class="royal-seal" data-at="6">${SEAL}</div></footer>
       </article>
       <div class="call" data-at="6">

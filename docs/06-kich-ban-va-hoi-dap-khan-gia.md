@@ -18,7 +18,7 @@ Ba thông điệp được nhắc ở đầu và ở cuối buổi:
 
 **Lời nói (màn giới thiệu):**
 
-> "Trước khi nói về AI, mình kể một chuyện cổ. Cậu bé Đinh Bộ Lĩnh chăn trâu ở Hoa Lư, bẻ bông lau làm cờ, bày trận với lũ trẻ. Mỗi lần xuất quân, cả bọn hô: “Cờ Lau” đi!"
+> "Trước khi nói về AI, mình kể một chuyện cổ. Cậu bé Đinh Bộ Lĩnh chăn trâu ở Hoa Lư, bẻ bông lau làm cờ, bày trận với lũ trẻ. Mỗi phen xuất quân, cả bọn hô: “Cờ Lau” đi!"
 >
 > "Hôm nay mình cần anh em giúp dẹp loạn mười hai sứ quân. Mỗi trận có ba chiêu A, B, C. Anh em gõ đáp án vào chat Meet, mình chốt theo số đông."
 
