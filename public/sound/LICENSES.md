@@ -1,24 +1,21 @@
 # Sound sample provenance
 
-All files are mono, 44.1 kHz, MP3 128 kbps. Edits common to every file: cut a window out of the source recording, 3 ms fade-in, short fade-out, peak-normalised to about -1 dBFS with ffmpeg. Licence proof is the Wikimedia Commons file page (its licence box and the linked deed), checked via the Commons API on 2026-10-13.
+Exactly the files in this folder (7 MP3, 465 KB in total). All three sources are Freesound sounds released under CC0 1.0; each Freesound page links the deed https://creativecommons.org/publicdomain/zero/1.0/ (checked on 2026-10-13 by fetching the page and looking for that link). The audio is the public hq preview MP3 from the Freesound CDN, so quality is capped at that preview.
 
-CC0 deed: https://creativecommons.org/publicdomain/zero/1.0/
+Edits common to every file: downmix to mono, 44.1 kHz, cut a window out of the source, 3 ms fade-in, a fade-out at the end of the window, peak-normalised with ffmpeg, encoded as MP3 128 kbps. The decoded peaks are about -1.4 dBFS. The three single drum hits share one gain so that the light hit stays lighter than the strong one.
 
-| File | Role | Source | Author | Licence and proof | Edits |
+| File | Role | Source (Freesound) | Author | Licence proof | Edits |
 | --- | --- | --- | --- | --- | --- |
-| `dai_co.mp3` | Big drum hit (substitute for dai co: a taiko) | https://commons.wikimedia.org/wiki/File:02_Taiko2_(short).oga | Scott Harding, performed by the Singapore Wind Symphony Percussion Ensemble | CC0, Commons file page | one isolated hit at 6.80 s, 1.2 s long |
-| `trong_chien.mp3` | War drum hit (substitute: Polish frame drum) | https://commons.wikimedia.org/wiki/File:B%C4%99ben_obr%C4%99czowy_uderzenia_pojedyncze.flac | Swietliste (Commons user) | CC0, Commons file page | one hit at 5.20 s, 0.9 s long |
-| `timpani.mp3` | Low drum body for tutti hits | https://commons.wikimedia.org/wiki/File:Timpani_64-c-p5.wav | spt3125 | CC0, Commons file page | first 1.8 s |
-| `dui_gay.mp3` | Stick / snare crack | https://commons.wikimedia.org/wiki/File:Militarydrumbeat.ogg | SvonHalenbach | Public domain (Commons "PD"); credit says "self-made with Hydrogen" (a drum machine), so the kit's own licence is not independently verified | one snare hit at 1.33 s, 0.3 s long |
-| `chieng.mp3` | Gong (substitute for chieng: a Chinese gong) | https://commons.wikimedia.org/wiki/File:240382_the-very-real-horst_chinese-gong-finish-session-2014-06-10-29-143.wav (Freesound 240382) | the_very_Real_Horst | CC0, Commons file page | one strike at 10.05 s, 4.0 s long, 1.5 s fade-out |
-| `chieng_nho.mp3` | Second, smaller gong for staggered gongs | https://commons.wikimedia.org/wiki/File:Gong55.ogg | stephan | CC0, Commons file page | strike at 5.02 s, 3.0 s long, stereo to mono |
-| `chieng_nguoc.mp3` | Reversed gong swell | same source as `chieng.mp3` | the_very_Real_Horst | CC0, Commons file page | strike at 10.05 s, 3.0 s, reversed (`areverse`) |
-| `tu_va.mp3` | Horn (substitute for tu va: a Swiss alphorn-type horn) | https://commons.wikimedia.org/wiki/File:Bl%C3%BCmlisalp_Horn.ogg | Nachtbold | CC0, Commons file page | whole file, 1.9 s |
-| `tu_va_san.mp3` | Second horn (hunting horn, higher) | https://commons.wikimedia.org/wiki/File:Hunting_horn_tone.ogg | Alon-De-Lon | CC0, Commons file page | note at 3.5 s, 1.5 s long |
-| `va_dap.mp3` | Impact / stamp (brass-synth "braam") | https://commons.wikimedia.org/wiki/File:647712_unfa_braam.flac (Freesound 647712) | Unfa | CC0, Commons file page | first 1.8 s |
+| `taiko_manh.mp3` | Strong single drum hit | https://freesound.org/s/459561/ "Taiko Drum Sequence for Looping (The Sacrifice)" | Infinita08 | CC0, https://freesound.org/s/459561/ links the CC0 1.0 deed | hit at 29.413 s, 0.41 s long, 50 ms fade-out |
+| `taiko_vua.mp3` | Medium single drum hit | same source | Infinita08 | same | hit at 7.593 s, 0.51 s long, 50 ms fade-out |
+| `taiko_nhe.mp3` | Light single drum hit | same source | Infinita08 | same | hit at 8.119 s, 0.44 s long, 50 ms fade-out |
+| `taiko_don.mp3` | Drum roll / fill segment | same source | Infinita08 | same | 2.63 s from 0.15 s (a roll that ends on a strong hit, then a short fill), 80 ms fade-out |
+| `chieng.mp3` | Gong with its natural tail | https://freesound.org/s/486629/ "Gong Brilliant Paiste 32"" | JensZygar | CC0, https://freesound.org/s/486629/ links the CC0 1.0 deed | 15 s from 0.3 s, 2 s fade-out |
+| `chieng_nguoc.mp3` | Reversed gong swell | same source as `chieng.mp3` | JensZygar | same | first 3 s with a 2 s fade-out, then reversed (`areverse`) so it swells into the strike, 40 ms fade-out |
+| `tu_va.mp3` | Horn (conch shell) | https://freesound.org/s/78974/ "Conch" | RoofDog | CC0, https://freesound.org/s/78974/ links the CC0 1.0 deed | 6.6 s from 0.4 s, 0.3 s fade-out, +18.9 dB gain (the preview is quiet) |
 
-## Substitutes (no CC0 original found)
+## Notes
 
-- No CC0 recording of a Vietnamese chieng or tu va (conch horn) turned up in Wikimedia Commons searches. Used instead: a Chinese gong, a taiko, a Polish frame drum, an alphorn-type horn and a hunting horn. They are the nearest CC0 timbres, not authentic Vietnamese instruments.
-- `va_dap.mp3` is a synthesised brass hit, not a recorded seal stamp.
-- `dui_gay.mp3` comes from a drum-machine render. Its public-domain status rests on the uploader's dedication only.
+- The drum is a taiko recording, the gong a 32 inch Paiste gong and the horn a conch shell. No CC0 recording of a Vietnamese đại cổ, chiêng or tù và turned up, so these are the nearest timbres, not authentic Vietnamese instruments.
+- The single hits are cut out of a continuous groove, so each one is truncated at the next hit; the hall reverb in the engine supplies the tail.
+- Candidates that were auditioned and not chosen are listed in `prototypes/sound/CANDIDATES.md`.
