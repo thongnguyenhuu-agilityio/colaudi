@@ -66,6 +66,9 @@ p { margin: 0; max-width: 62ch; }
 .btn { border: 0; border-radius: 8px; padding: .65em 1.3em; font-weight: 700; background: var(--cinnabar); color: var(--plume); box-shadow: 0 3px 0 var(--cinnabar-deep); }
 .btn:hover { filter: brightness(1.08); }
 .btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--cinnabar-deep); }
+/* The long start button breaks only between its three phrases; narrow screens stack them without the dashes. */
+.btn.start span { white-space: nowrap; }
+.btn.start i { font-style: normal; }
 .btn.alt { background: none; border: 1.5px solid var(--gold); color: var(--gold); box-shadow: none; }
 .btn:disabled { opacity: .55; cursor: default; }
 .row { display: flex; gap: .8rem; flex-wrap: wrap; align-items: center; }
@@ -268,6 +271,8 @@ button.tile:hover:not(:disabled) { border-color: var(--gold); background: var(--
 .made { font-size: .72em; color: var(--dim); }
 
 @media (max-width: 820px) {
+  .btn.start span { display: block; }
+  .btn.start i { display: none; }
   .cryfx { --cry-reed: 1.5s; --cry-word: 1.5s; }
   .title, .battle, .tally, .wall, .crown { grid-template-columns: 1fr; }
   .fin { grid-template-columns: 1fr; grid-template-areas: "ago" "morph" "born" "decree" "call" "row"; min-height: 0; gap: 1.2rem; }

@@ -86,7 +86,7 @@ Kiểm tra: `grep -ci ngươi public/game.js` = 0; không có "ta" xưng hô m�
 | --- | --- | --- | --- |
 | 39 | Màn đầu · tiêu đề phụ | Dẹp loạn mười hai sứ quân, phiên bản dân phần mềm. | Dẹp loạn mười hai sứ quân, bản dành cho giới phần mềm. |
 | 40 | Màn đầu · nút | Tập trận nhanh · 2 trận | (bỏ: không còn chế độ nhanh) |
-| 41 | Màn đầu · nút | Đánh đủ 12 trận · ghi danh bảng vàng | Khởi binh · dẹp đủ 12 sứ quân |
+| 41 | Màn đầu · nút | Đánh đủ 12 trận · ghi danh bảng vàng | Khởi binh – dẹp loạn 12 sứ quân – lưu danh thiên cổ (Thông sửa 14/10) |
 | 42 | Màn đầu · dòng mới | (không có) | Dẹp đủ mười hai sứ quân mới được đăng cơ, danh xưng ghi lên bảng vàng. |
 | 43 | Màn đầu · dòng phím | <kbd>Enter</kbd> tiếp tục | <kbd>Enter</kbd> tiếp bước |
 | 44 | Màn đầu · dòng phím | <kbd>Esc</kbd> về bản đồ | <kbd>Esc</kbd> về địa đồ |

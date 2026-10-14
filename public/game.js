@@ -638,7 +638,7 @@ const scenes = {
         <div class="eyebrow">Hoa Lư · thế kỷ X</div>
         <h1>“Cờ Lau” đi</h1>
         <p class="sub">Dẹp loạn mười hai sứ quân, bản dành cho giới phần mềm.</p>
-        <div class="row"><button class="btn" data-primary data-act="start">Khởi binh · dẹp đủ 12 sứ quân</button></div>
+        <div class="row"><button class="btn start" data-primary data-act="start"><span>Khởi binh</span><i> – </i><span>dẹp loạn 12 sứ quân</span><i> – </i><span>lưu danh thiên cổ</span></button></div>
         <p class="keys">Dẹp đủ mười hai sứ quân mới được đăng cơ, danh xưng ghi lên bảng vàng.</p>
         ${PRESENTER ? '' : '<p class="keys"><kbd>A</kbd> <kbd>B</kbd> <kbd>C</kbd> chọn chiêu · <kbd>Enter</kbd> tiếp bước · <kbd>Esc</kbd> về địa đồ</p>'}
         <p class="keys" ${PRESENTER ? '' : 'hidden'}><kbd>A</kbd> <kbd>B</kbd> <kbd>C</kbd> chọn chiêu · <kbd>Enter</kbd> tiếp bước · <kbd>Esc</kbd> về địa đồ · <kbd>L</kbd> bảng vàng · <kbd>M</kbd> tắt tiếng</p>
