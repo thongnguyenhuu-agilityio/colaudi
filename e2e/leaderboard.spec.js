@@ -1,30 +1,16 @@
 import { test, expect } from '@playwright/test';
-
-// Win one battle by trying A, B, C until the result card appears. Returns the number of wrong tries.
-async function winBattle(page) {
-  let wrong = 0;
-  for (const key of ['a', 'b', 'c']) {
-    await page.keyboard.press(key);
-    if (await page.locator('.result').isVisible()) return wrong;
-    wrong++;
-  }
-  throw new Error('battle not won');
-}
+import { startCampaign, fight, winAll } from './campaign.js';
 
 test('a full run of 12 battles gets scored and lands on the leaderboard', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: /Đánh đủ 12 trận/ }).click();
-  await page.getByRole('button', { name: 'Xuất quân' }).click();
+  await startCampaign(page);
   // A script finishes 12 battles faster than any human; wait past the minimum run time (MIN_RUN_SEC=5 in tests).
   await page.waitForTimeout(5_500);
 
   let expected = 0;
   for (let i = 0; i < 12; i++) {
-    await page.locator('button.tile:not([disabled])').first().click();
-    const wrong = await winBattle(page);
-    expected += [3, 1, 0][Math.min(wrong, 2)];
+    expected += await fight(page, 1);
     await expect(page.locator('#scorebox')).toContainText(`Điểm ${expected}`);
-    await page.keyboard.press('Escape');
   }
 
   await page.getByRole('button', { name: 'Ghi danh bảng vàng' }).click();
@@ -48,17 +34,13 @@ test('the leaderboard trims an over-long name to 20 characters', async ({ reques
   expect([...(await res.json()).name].length).toBe(20);
 });
 
-test('quick mode reaches the coronation and the Claude reveal', async ({ page }) => {
+test('the full campaign reaches the coronation and the Claude reveal', async ({ page }) => {
   await page.goto('/');
-  await page.keyboard.press('Enter'); // Tập trận nhanh
+  await page.keyboard.press('Enter'); // Khởi binh
   await page.keyboard.press('Enter'); // Xuất quân
-  for (let i = 0; i < 2; i++) {
-    await page.locator('button.tile:not([disabled])').first().click();
-    await winBattle(page);
-    if (i < 1) await page.keyboard.press('Escape');
-  }
-  await page.getByRole('button', { name: 'Tiếp tục' }).click();
-  await page.getByRole('button', { name: 'Lên ngôi' }).click();
+  await fight(page, 12, { stay: true });
+  await page.getByRole('button', { name: 'Ghi danh bảng vàng' }).click();
+  await page.getByRole('button', { name: 'Đăng cơ' }).click();
   await expect(page.getByRole('heading', { name: 'Đại Thắng Minh Hoàng Đế' })).toBeAttached();
   for (let i = 0; i < 8; i++) await page.keyboard.press('Enter');
   await expect(page.locator('.morph .claude')).toBeVisible({ timeout: 15_000 });
@@ -66,18 +48,13 @@ test('quick mode reaches the coronation and the Claude reveal', async ({ page })
 
 test('a failed leaderboard poll never fakes a saved score', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: /Đánh đủ 12 trận/ }).click();
-  await page.getByRole('button', { name: 'Xuất quân' }).click();
+  await startCampaign(page);
   await page.waitForTimeout(5_500);
-  for (let i = 0; i < 12; i++) {
-    await page.locator('button.tile:not([disabled])').first().click();
-    await winBattle(page);
-    await page.keyboard.press('Escape');
-  }
+  await winAll(page);
   // From now on every leaderboard request fails, as during a Redis outage.
   await page.route('**/api/leaderboard', route => route.fulfill({ status: 503, contentType: 'application/json', body: '{"error":"down"}' }));
   await page.getByRole('button', { name: 'Ghi danh bảng vàng' }).click();
-  await expect(page.locator('#liveTotal')).toContainText('Mất kết nối');
+  await expect(page.locator('#liveTotal')).toContainText('Mất liên lạc');
   await page.locator('#pname').fill('Không được lưu');
   await page.getByRole('button', { name: 'Ghi danh', exact: true }).click();
   await expect(page.locator('#signMsg')).toHaveClass(/err/);

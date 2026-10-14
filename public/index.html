@@ -156,12 +156,6 @@ button.tile:hover:not(:disabled) { border-color: var(--gold); background: var(--
 @keyframes shout { 0% { transform: scale(.4) rotate(-6deg); opacity: 0; } 25% { transform: scale(1.08) rotate(-3deg); opacity: 1; } 70% { opacity: 1; } 100% { transform: scale(1) rotate(-3deg); opacity: 0; } }
 @keyframes sweep { from { transform: translateX(0) rotate(-10deg); } to { transform: translateX(145vw) rotate(10deg); } }
 
-/* Surrender */
-.surrender { display: grid; gap: 1.2rem; }
-.surrender h2 { font-size: clamp(2.4rem, 4.8vw, 3.8rem); color: var(--gold); }
-.mini { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .5rem; }
-.mini .tile { min-height: 4.2em; }
-
 /* Tally + leaderboard (Bảng vàng) */
 .tally { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 1.6rem; align-items: start; }
 .card { background: var(--panel); border: 1.5px solid var(--line); border-radius: 14px; padding: 1.3rem 1.4rem; display: grid; gap: .9rem; min-width: 0; }
@@ -285,7 +279,6 @@ button.tile:hover:not(:disabled) { border-color: var(--gold); background: var(--
   .map .tile { grid-row: auto !important; grid-column: auto !important; }
   .capital { grid-area: auto; grid-column: 1 / -1; order: -1; grid-template-columns: 1fr; }
   .capital .reed { height: 120px; }
-  .mini { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .pips { display: none; }
   .regalia { height: 340px; }
   .regalia .reed { height: 300px; left: calc(50% - 64px); transform-origin: 64px 100%; }
@@ -308,8 +301,8 @@ button.tile:hover:not(:disabled) { border-color: var(--gold); background: var(--
     <span class="scorebox" id="scorebox" aria-live="polite"></span>
     <div class="tools">
       <button class="ghost" id="boardBtn" type="button">Bảng vàng</button>
-      <button class="ghost" id="snd" type="button">Âm thanh: bật</button>
-      <button class="ghost" id="home" type="button">Màn đầu</button>
+      <button class="ghost" id="snd" type="button">Chiêng trống: bật</button>
+      <button class="ghost" id="home" type="button">Cổng thành</button>
     </div>
   </header>
   <main id="main"></main>
