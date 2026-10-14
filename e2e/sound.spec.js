@@ -1,9 +1,10 @@
 import { test, expect } from '@playwright/test';
+import { startCampaign, winBattle, winAll } from './campaign.js';
 
 // Sound must never threaten the game (FR-18 is "Nên có"): these tests guard the stage demo.
 // Console warnings are ignored on purpose: Chrome warns when an AudioContext is created before a user gesture.
 
-const FALLBACK = 'Âm thanh: bản tổng hợp (mẫu lỗi) · bấm để tải lại';
+const FALLBACK = 'Chiêng trống: bản tổng hợp (mẫu lỗi) · bấm để tải lại';
 
 function watchErrors(page) {
   const errors = [];
@@ -34,21 +35,12 @@ async function instrumentAudio(page) {
 }
 const live = page => page.evaluate(() => window.__liveSources());
 
-async function winBattle(page) {
-  for (const key of ['a', 'b', 'c']) {
-    await page.keyboard.press(key);
-    if (await page.locator('.result').isVisible()) return;
-  }
-  throw new Error('battle not won');
-}
-
-// Title -> quick run -> surrender (S) -> crown -> finale, using only the keyboard after the first clicks.
+// Title -> the 12 battles -> tally -> crown -> finale.
 async function playToFinale(page) {
-  await page.getByRole('button', { name: /Tập trận nhanh/ }).click();
-  await page.getByRole('button', { name: 'Xuất quân' }).click();
-  await page.keyboard.press('s');
-  await expect(page.locator('.tile.pending')).toHaveCount(0, { timeout: 15_000 });
-  await page.getByRole('button', { name: 'Lên ngôi' }).click();
+  await startCampaign(page);
+  await winAll(page);
+  await page.getByRole('button', { name: 'Ghi danh bảng vàng' }).click();
+  await page.getByRole('button', { name: 'Đăng cơ' }).click();
   const legacy = page.getByRole('button', { name: /Ngàn năm sau/ });
   for (let i = 0; i < 12 && !(await legacy.isVisible()); i++) { await page.keyboard.press('Enter'); await page.waitForTimeout(120); }
   await expect(legacy).toBeVisible();
@@ -57,39 +49,39 @@ async function playToFinale(page) {
   await expect(page.locator('.made')).toBeVisible();
 }
 
-test('a quick run reaches the finale with sound on: no console or page errors', async ({ page }) => {
+test('a full campaign reaches the finale with sound on: no console or page errors', async ({ page }) => {
   const errors = watchErrors(page);
   const sounds = [];
   page.on('response', r => { if (/\/sound\/[^/]+\.mp3$/.test(r.url())) sounds.push(r.status()); });
   await page.goto('/?presenter');
   await playToFinale(page);
-  await expect(page.locator('#snd')).toHaveText('Âm thanh: bật');
+  await expect(page.locator('#snd')).toHaveText('Chiêng trống: bật');
   expect(sounds.length).toBe(7);
   expect(sounds.every(s => s === 200)).toBe(true);
   expect(errors).toEqual([]);
 });
 
-test('a quick run reaches the finale with sound off: no console or page errors', async ({ page }) => {
+test('a full campaign reaches the finale with sound off: no console or page errors', async ({ page }) => {
   const errors = watchErrors(page);
   await page.goto('/?presenter');
   await page.keyboard.press('m');
-  await expect(page.locator('#snd')).toHaveText('Âm thanh: tắt');
+  await expect(page.locator('#snd')).toHaveText('Chiêng trống: tắt');
   await playToFinale(page);
-  await expect(page.locator('#snd')).toHaveText('Âm thanh: tắt');
+  await expect(page.locator('#snd')).toHaveText('Chiêng trống: tắt');
   expect(errors).toEqual([]);
 });
 
 test('the mute choice survives a reload', async ({ page }) => {
   await page.goto('/');
-  await expect(page.locator('#snd')).toHaveText('Âm thanh: bật');
+  await expect(page.locator('#snd')).toHaveText('Chiêng trống: bật');
   await page.keyboard.press('m');
-  await expect(page.locator('#snd')).toHaveText('Âm thanh: tắt');
+  await expect(page.locator('#snd')).toHaveText('Chiêng trống: tắt');
   await page.reload();
-  await expect(page.locator('#snd')).toHaveText('Âm thanh: tắt');
+  await expect(page.locator('#snd')).toHaveText('Chiêng trống: tắt');
   await page.locator('#snd').click();
-  await expect(page.locator('#snd')).toHaveText('Âm thanh: bật');
+  await expect(page.locator('#snd')).toHaveText('Chiêng trống: bật');
   await page.reload();
-  await expect(page.locator('#snd')).toHaveText('Âm thanh: bật');
+  await expect(page.locator('#snd')).toHaveText('Chiêng trống: bật');
 });
 
 test('when the samples fail to load the button says so, the game still plays, and a click retries', async ({ page }) => {
@@ -99,8 +91,7 @@ test('when the samples fail to load the button says so, the game still plays, an
   await page.goto('/?presenter');
   await expect(page.locator('#snd')).toHaveText(FALLBACK);
   // The game still plays (synth fallback) and nothing throws.
-  await page.getByRole('button', { name: /Tập trận nhanh/ }).click();
-  await page.getByRole('button', { name: 'Xuất quân' }).click();
+  await startCampaign(page);
   await page.locator('button.tile:not([disabled])').first().click();
   await winBattle(page);
   await expect(page.locator('.result')).toBeVisible();
@@ -108,15 +99,14 @@ test('when the samples fail to load the button says so, the game still plays, an
   // Retry: let the files through, click the button, the label returns to normal.
   await page.unroute('**/sound/*');
   await page.locator('#snd').click();
-  await expect(page.locator('#snd')).toHaveText('Âm thanh: bật');
+  await expect(page.locator('#snd')).toHaveText('Chiêng trống: bật');
   expect(pageErrors).toEqual([]);
 });
 
 test('leaving a scene stops the previous scene\'s sources', async ({ page }) => {
   await instrumentAudio(page);
   await page.goto('/?presenter');
-  await page.getByRole('button', { name: /Tập trận nhanh/ }).click();
-  await page.getByRole('button', { name: 'Xuất quân' }).click();
+  await startCampaign(page);
   await page.locator('button.tile:not([disabled])').first().click();
   await winBattle(page); // the "correct" cue is a long phrase
   await expect.poll(() => live(page)).toBeGreaterThan(0); // the instrument sees the cue
@@ -128,8 +118,7 @@ test('leaving a scene stops the previous scene\'s sources', async ({ page }) => 
 test('muting stops the live sources', async ({ page }) => {
   await instrumentAudio(page);
   await page.goto('/?presenter');
-  await page.getByRole('button', { name: /Tập trận nhanh/ }).click();
-  await page.getByRole('button', { name: 'Xuất quân' }).click();
+  await startCampaign(page);
   await page.locator('button.tile:not([disabled])').first().click();
   await winBattle(page);
   await expect.poll(() => live(page)).toBeGreaterThan(0);
@@ -148,7 +137,7 @@ test('a hidden tab fades out and suspends the audio, a visible tab resumes it', 
     document.dispatchEvent(new Event('visibilitychange'));
   }, hidden);
   await page.goto('/?presenter');
-  await page.getByRole('button', { name: /Tập trận nhanh/ }).click(); // a gesture: the context runs
+  await page.getByRole('button', { name: /Khởi binh/ }).click(); // a gesture: the context runs
   await expect.poll(() => page.evaluate(() => window.__ctx.state)).toBe('running');
   await setHidden(true);
   await expect.poll(() => page.evaluate(() => window.__ctx.state)).toBe('suspended');

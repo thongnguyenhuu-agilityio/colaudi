@@ -2,7 +2,7 @@
 
 | Mục | Nội dung |
 | --- | --- |
-| Thời gian | 12/10/2026 – 13/10/2026 |
+| Thời gian | 12/10/2026 – 14/10/2026 |
 | Người tham gia | Thông (chủ sản phẩm, người trình bày) · Claude (phân tích, kiến trúc, phát triển, kiểm thử) |
 | Nguyên tắc ra quyết định | Thông chốt các vấn đề phi kỹ thuật. Claude tự quyết các vấn đề kỹ thuật và chủ động phản biện khi một quyết định có thể làm kết quả kém đi (xem Q-13, Q-14) |
 | Tài liệu liên quan | [01 Yêu cầu](01-yeu-cau.md) · [03 Kiến trúc](03-kien-truc.md) · [04 Kế hoạch](04-ke-hoach.md) · [05 Tổ chức Google Meet](05-to-chuc-google-meet.md) · [06 Kịch bản và hỏi đáp khán giả](06-kich-ban-va-hoi-dap-khan-gia.md) |
@@ -43,6 +43,7 @@ Tài liệu này ghi lại mọi câu hỏi, yêu cầu và góp ý đã trao đ
 | [Q-28](#q-28) | 13/10 | Viết “Cờ Lau” đi: tiếng lóng trong ngoặc kép, “đi” là lời khuyến khích | Thông |
 | [Q-29](#q-29) | 13/10 | Kế hoạch cài đặt và triển khai | Claude đề xuất, Thông cung cấp thông tin |
 | [Q-30](#q-30) | 13/10 | Red-team review kế hoạch và code | Claude (người review độc lập), Thông đẩy GitHub |
+| [Q-31](#q-31) | 14/10 | Bỏ tập trận nhanh, bắt buộc đủ 12 sứ quân; giọng cổ trang vòng hai ("Đăng cơ") | Thông |
 
 ---
 
@@ -579,3 +580,23 @@ Câu chốt "Cùng “Cờ Lau”, chúng ta tiến!" (Q-27) vốn đã đặt "
 
 **Kết quả:** [07 Deployment plan](07-deployment.md) viết lại; [08 Red-team review](08-red-team-review.md); cập nhật 01, 03, 04, 05, 06; NFR-02, NFR-06, NFR-07 sửa; thêm NFR-10; thêm ADR-07, ADR-08.
 
+---
+
+<a id="q-31"></a>
+## Q-31 · Bỏ tập trận nhanh; giọng cổ trang vòng hai
+
+- **Ngày:** 14/10/2026 · **Quyết định bởi:** Thông (chốt, cuối cùng)
+
+**Yêu cầu A:** "Tắt phần tập trận nhanh đi. Bắt buộc dẹp hết 12 sứ quân mới lên ngôi."
+
+**Yêu cầu B:** "Duyệt lại nội dung, đổi sang tông giọng cổ trang hơn. Ví dụ: Lên ngôi thì gọi là 'Đăng cơ'."
+
+**Quyết định A:** chỉ còn một cách chơi, chiến dịch 12 trận ghi lên bảng vàng. Gỡ hẳn: nút "Tập trận nhanh", `mode`, `QUICK_WINS`, dòng chữ của chế độ nhanh trên bản đồ, phím `S` "tới đoạn kết" (phím này bỏ qua các trận), màn quy phục `surrender` (không còn lối vào) cùng hai cue âm thanh `tile` và `end` và phần CSS của nó. Các phím điều khiển còn lại (A/B/C, Enter, Esc, L, M) và `?presenter` giữ nguyên. Luồng sau trận thứ 12: bảng điểm và ghi danh, rồi "Đăng cơ", rồi màn kết. Mọi lối vào bảng điểm, đăng cơ và màn kết đi qua một cổng `gate()` trong `go()` (và khi khôi phục trạng thái lưu), nên dưới 12 sứ quân không có cách nào tới được, kể cả nút giả hay trạng thái lưu cũ. Máy chủ không phụ thuộc chế độ nhanh (chỉ nhận `start` và điểm 0–36), nên `api/leaderboard.js` không đổi và kiểm tra đầu vào giữ nguyên. Người trình bày bấm Enter ở bảng điểm để đi tiếp mà không cần ghi danh.
+
+**Hệ quả cho buổi trình bày:** phần mở màn không còn là 2 trận. Xem ghi chú "⚠ Thời lượng: 12 trận trên sân khấu" ở [04 Kế hoạch](04-ke-hoach.md) mục 3 và [06 Kịch bản](06-kich-ban-va-hoi-dap-khan-gia.md) mục 1; cách xếp lại lịch là việc chờ Thông quyết.
+
+**Quyết định B:** vòng hai của rà soát lời văn phủ cả tiêu đề, nút, nhãn, gợi ý và thông báo, không chỉ lời kể: "Lên ngôi" thành "Đăng cơ", "Màn đầu" thành "Cổng thành", "Âm thanh" thành "Chiêng trống", "Về bản đồ" thành "Về địa đồ", "Tiếp tục" thành "Tiếp bước" (ở gợi ý phím), "Chơi lại" thành "Khởi binh lại", cùng các thông báo ghi danh và bảng vàng. Giữ: NFR-09 (không "ta", "ngươi", "các ngươi"), dữ kiện lịch sử ở [01](01-yeu-cau.md) mục 12, thuật ngữ phần mềm, đáp án các câu hỏi, các phím. Mọi chuỗi đã đổi nằm ở [10 Rà soát lời văn](10-copy-review.md) mục 5.
+
+**Đã cân nhắc và loại:** giữ chế độ nhanh nhưng ẩn khỏi khán giả (vẫn để lại đường tắt tới màn đăng cơ, trái ý "bắt buộc"); giữ phím `S` cho người trình bày (bỏ qua trận, cùng lỗi mà red-team L1 đã chặn ở chế độ đủ); đổi cả lời báo lỗi của máy chủ (được trích trong AC-06, AC-07 và tài liệu 03, để lại cho lần sau nếu Thông muốn).
+
+**Kết quả:** [01](01-yeu-cau.md) FR-06, FR-07, FR-14, FR-17, AC-14 và ma trận truy vết; [03](03-kien-truc.md), [04](04-ke-hoach.md), [06](06-kich-ban-va-hoi-dap-khan-gia.md), [09](09-sound-plan.md), [10](10-copy-review.md); `e2e/campaign.spec.js` mới.

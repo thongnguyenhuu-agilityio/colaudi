@@ -55,4 +55,4 @@ npm run board -- https://<domain> open          # mở lại
 
 ## Phím tắt cho người trình bày
 
-Mở game với `?presenter` để xem đủ phím tắt: `A` `B` `C` chọn chiêu · `Enter` tiếp tục · `Esc` về bản đồ · `L` bảng vàng · `S` tới đoạn kết (chỉ chế độ nhanh) · `M` tắt tiếng
+Mở game với `?presenter` để xem đủ phím tắt: `A` `B` `C` chọn chiêu · `Enter` tiếp bước · `Esc` về địa đồ · `L` bảng vàng · `M` tắt tiếng

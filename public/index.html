@@ -66,6 +66,9 @@ p { margin: 0; max-width: 62ch; }
 .btn { border: 0; border-radius: 8px; padding: .65em 1.3em; font-weight: 700; background: var(--cinnabar); color: var(--plume); box-shadow: 0 3px 0 var(--cinnabar-deep); }
 .btn:hover { filter: brightness(1.08); }
 .btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--cinnabar-deep); }
+/* The long start button breaks only between its three phrases; narrow screens stack them without the dashes. */
+.btn.start span { white-space: nowrap; }
+.btn.start i { font-style: normal; }
 .btn.alt { background: none; border: 1.5px solid var(--gold); color: var(--gold); box-shadow: none; }
 .btn:disabled { opacity: .55; cursor: default; }
 .row { display: flex; gap: .8rem; flex-wrap: wrap; align-items: center; }
@@ -155,12 +158,6 @@ button.tile:hover:not(:disabled) { border-color: var(--gold); background: var(--
 .cryfx .reed { position: absolute; left: -24vw; bottom: 6vh; height: 66vh; animation: sweep var(--cry-reed) cubic-bezier(.35, .1, .65, .9) forwards; }
 @keyframes shout { 0% { transform: scale(.4) rotate(-6deg); opacity: 0; } 25% { transform: scale(1.08) rotate(-3deg); opacity: 1; } 70% { opacity: 1; } 100% { transform: scale(1) rotate(-3deg); opacity: 0; } }
 @keyframes sweep { from { transform: translateX(0) rotate(-10deg); } to { transform: translateX(145vw) rotate(10deg); } }
-
-/* Surrender */
-.surrender { display: grid; gap: 1.2rem; }
-.surrender h2 { font-size: clamp(2.4rem, 4.8vw, 3.8rem); color: var(--gold); }
-.mini { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .5rem; }
-.mini .tile { min-height: 4.2em; }
 
 /* Tally + leaderboard (Bảng vàng) */
 .tally { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 1.6rem; align-items: start; }
@@ -274,6 +271,8 @@ button.tile:hover:not(:disabled) { border-color: var(--gold); background: var(--
 .made { font-size: .72em; color: var(--dim); }
 
 @media (max-width: 820px) {
+  .btn.start span { display: block; }
+  .btn.start i { display: none; }
   .cryfx { --cry-reed: 1.5s; --cry-word: 1.5s; }
   .title, .battle, .tally, .wall, .crown { grid-template-columns: 1fr; }
   .fin { grid-template-columns: 1fr; grid-template-areas: "ago" "morph" "born" "decree" "call" "row"; min-height: 0; gap: 1.2rem; }
@@ -285,7 +284,6 @@ button.tile:hover:not(:disabled) { border-color: var(--gold); background: var(--
   .map .tile { grid-row: auto !important; grid-column: auto !important; }
   .capital { grid-area: auto; grid-column: 1 / -1; order: -1; grid-template-columns: 1fr; }
   .capital .reed { height: 120px; }
-  .mini { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .pips { display: none; }
   .regalia { height: 340px; }
   .regalia .reed { height: 300px; left: calc(50% - 64px); transform-origin: 64px 100%; }
@@ -308,8 +306,8 @@ button.tile:hover:not(:disabled) { border-color: var(--gold); background: var(--
     <span class="scorebox" id="scorebox" aria-live="polite"></span>
     <div class="tools">
       <button class="ghost" id="boardBtn" type="button">Bảng vàng</button>
-      <button class="ghost" id="snd" type="button">Âm thanh: bật</button>
-      <button class="ghost" id="home" type="button">Màn đầu</button>
+      <button class="ghost" id="snd" type="button">Chiêng trống: bật</button>
+      <button class="ghost" id="home" type="button">Cổng thành</button>
     </div>
   </header>
   <main id="main"></main>
