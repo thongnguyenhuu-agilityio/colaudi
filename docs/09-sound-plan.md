@@ -49,7 +49,7 @@ Make the drums feel like going to war, in the style of the battle drums in *Tân
 
 ## 4. Cue sheet
 
-Every cue is a one-shot phrase, with nothing looping. Everything a sound signals is also shown on screen (correct, wrong, time up, surrender), so no information exists only in the sound.
+Every cue is a one-shot phrase, with nothing looping. Everything a sound signals is also shown on screen (correct, wrong, time up), so no information exists only in the sound.
 
 The **Who** column says who hears the cue:
 - **P** = presenter page (`?presenter`), which the Meet audience hears through tab share.
@@ -57,13 +57,12 @@ The **Who** column says who hears the cue:
 
 | Scene / moment | Phrase | Who |
 | --- | --- | --- |
-| Title: "Đánh đủ 12 trận" / "Tập trận nhanh" | Horn call, then 3 big-drum strikes | All |
+| Title: "Khởi binh" (the only start button since 14 Oct; was "Đánh đủ 12 trận" / "Tập trận nhanh") | Horn call, then 3 big-drum strikes | All |
 | Map → battle (`fight`) | Short horn, then a war-drum fill (about 1 s) | All |
 | Vote: last 5 s of the 20 s timer | Stick hits speeding up (5 hits, getting louder) | P |
 | Vote: "Hết giờ bỏ phiếu" | One gong stab, **then silence** until the pick. The presenter waits 5–10 s for room B, so nothing loops | P |
 | Correct answer | Ensemble hit, then the accelerating war roll ending on a big stroke (about 1.3 s, under the "Cờ Lau đi!" overlay) | All |
 | Wrong answer | Muffled low drum and a short dissonant gong | All |
-| Surrender cascade | Each falling tile is one drum hit, rising in pitch and level; big gong at the end | All |
 | Tally / board: name submitted | Gong and a short roll | All |
 | **Crown** (8 steps, 1.5 s apart since 13 Oct; was 2.6 s) | One arc with one climax (revised 13 Oct after the owner's listen, see Red-team review 2):<br>Step 0: two spaced big-drum strokes. This replaces the current `sfx.roll()` on render.<br>Step 1: one medium stroke.<br>Step 2 ("Đại Thắng Minh Hoàng Đế"): the only tutti: big-drum ensemble, horn, one bright gong that rings and fades out by about 6.5 s.<br>Step 3 ("Xưng Hoàng Đế"): one accent stroke, the ringing gong ducked under it. No new gong.<br>Steps 4–6: silence, so the text breathes.<br>Step 7: one closing stroke | All |
 | **Finale** (7 steps, 1.4 s apart since 13 Oct; was 2.4 s) | Step 0 ("Trải hơn một nghìn năm"): reversed gong swell, the sound of time rewinding.<br>Steps 1–2 (the word morph): two drum strikes, the second one pitched down, with a quiet synth sub and a filtered pulse, so ancient turns modern.<br>Step 3 ("Claude"): hybrid impact (big drum, synth sub, gong).<br>Step 5 ("Hỡi tướng sĩ!"): war-drum call to arms.<br>Step 6 (seal): stamp, horn, gong decaying | All |
@@ -90,7 +89,7 @@ The **Who** column says who hears the cue:
 - **Tab hidden:** fade out and `suspend()` the context on `visibilitychange`, and resume when the tab is visible. Do not rely on `setTimeout` in background tabs.
 - **Failure handling:**
   - Sound code never throws.
-  - Any load error switches to the synth and labels the button **"Âm thanh: bản tổng hợp (mẫu lỗi) · bấm để tải lại"**. The fallback is visible, never silent (C7).
+  - Any load error switches to the synth and labels the button **"Chiêng trống: bản tổng hợp (mẫu lỗi) · bấm để tải lại"** (the label was "Âm thanh: …" until 14 Oct). The fallback is visible, never silent (C7).
 - **Assets:**
   - Add `.mp3: audio/mpeg` to `scripts/dev.mjs` types.
   - Vercel serves `public/sound/` statically.
@@ -114,7 +113,7 @@ The **Who** column says who hears the cue:
 
 Owner's picks: taiko "Taiko Drum Sequence" (Freesound 459561), gong "Gong Brilliant Paiste 32"" (486629), conch (78974), all CC0; files, edits and proof links are in `public/sound/LICENSES.md` (7 files, 465 KB).
 
-- **Cues:** `start`, `fight`, `tick` and `timeup` (the last two presenter only), `correct`, `wrong`, `tile` (surrender cascade) with `end`, `submitted`, and `crown`/`finale` by step number. A cue fired by a click is issued after `go()`, so the scene change does not fade it.
+- **Cues:** `start`, `fight`, `tick` and `timeup` (the last two presenter only), `correct`, `wrong`, `submitted`, and `crown`/`finale` by step number. A cue fired by a click is issued after `go()`, so the scene change does not fade it.
 - **Differences from the plan:** (1) while the samples are still loading (a second or two) cues use the synth, then switch to samples; a failed load keeps the synth and labels the button. (2) In the fallback state a click on the sound button retries the load and `M` still toggles mute. (3) Gong ring is capped at 10.5 s plus the reverb tail, so rings end 10.7 to 12.2 s after the strike; the crown's gong is capped at 6.5 s (Red-team review 2). The half-speed gong sub layer is now opt-in and unused. (4) Vote cues follow the visible bar: the timers are rescheduled on every battle render, because a wrong answer re-renders the card and restarts the bar. (5) The recorded drums are 90 % below 300 Hz, so big strokes also get a quiet synth skin layer; the crown, the finale and `correct` use a "bright" voicing (no low layer, high-pass at 140 Hz, +6 dB at 2.8 kHz; gong high-passed at 150 Hz, +8 dB shelf above 1.5 kHz). (6) 7 files instead of 8 to 10: there is no stick or seal-stamp sample, so the vote ticks are synth and the stamp is the strong ensemble hit plus a synth sub. (7) A wrong pick after "Hết giờ" re-renders the card and restarts the bar, so the `timeup` gong can sound again in the same battle. (8) `sfx.drum/roll/gong/bad` are gone; the public API is `cue`, `scene`, `silence`. (9) `window.__sound` (offline render hook) exists only with `?soundtest`. (10) `prototypes/sound-ab.html` still points at the removed Phase 0 files and no longer works. (11) Pressing Enter faster than 0.5 s in the crown skips every step's sound except the climax (2) and the close (7). (12) The reverb send is high-passed at 220 Hz and the hall tail is shorter and less dark (all cues).
 - **Measurement** (headless Chromium, `OfflineAudioContext`, 44.1 kHz, samples decoded at the headless 24 kHz context rate; reproduce with `?presenter&soundtest` and `window.__sound.render`): every cue and stack peaks at or below about 0.90 after the clipper and 0.93 before it (worst: finale steps 0 to 6, 0.891 and 0.926); the energy above 150 Hz is 0.1 to 10.4 dB below the full band (drum-only cues are the lowest, about 8 to 10 dB). Run-to-run variation of the synth noise is about 0.04 in peak.
 - **Not yet checked:** how it sounds, level through Meet's tab audio, and the room-B relay (dry run 2).
@@ -182,7 +181,7 @@ These go into [05](05-to-chuc-google-meet.md) §8 and [07](07-deployment.md) §6
 | Relay double-encoding (High) | Short, mid-heavy cues, no beds, short tails. Room-B judges in the dry run (§4, §6) |
 | Players in open offices, mute not persisted (High) | No beds for players, cues at 70 %, mute remembered (§4, §5) |
 | Stale audio on Enter skip / scene change, stacked gongs (Med) | Per-scene gain with fade-out, stop live sources, one gong voice (§5) |
-| S key misread (Med) | Cues follow the real S path (title/map/battle → surrender → crown). The finale is reached only from the crown's "Ngàn năm sau…" button |
+| S key misread (Med) | Closed on 14 Oct: the S key and the surrender scene are gone (owner decision, Q-31), so no cue path skips battles. The finale is reached only from the crown's "Ngàn năm sau…" button |
 | Vote timing vs room-B delay (Med) | Gong at "Hết giờ", then silence (§4) |
 | Audio unlock and decode latency (Med) | Decode at load, resume on first gesture, morning `M M` check (§5, §8) |
 | Formats (Med) | MP3 only (§3) |
@@ -192,3 +191,7 @@ These go into [05](05-to-chuc-google-meet.md) §8 and [07](07-deployment.md) §6
 | Dev server MIME (Low) | `.mp3` type added (§5) |
 | Weak testability claim (Low) | Live-source and mute e2e instead of pattern unit tests (§6) |
 | Docs drift (Low) | FR-18 matrix row, `game.js` comment and [03](03-kien-truc.md) updated in the same change (§7) |
+
+## 14 Oct update: surrender cascade removed
+
+With the quick mode gone (Q-31) the `surrender` scene has no way in, so its cues `tile` (one drum hit per falling tile) and `end` (drum plus gong) were deleted from `CUES` and `SYN_CUES`. No other cue changes; the sound button label now reads "Chiêng trống: …" instead of "Âm thanh: …". `scripts/sound-measure.mjs` does not use the removed cues.

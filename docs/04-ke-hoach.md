@@ -21,7 +21,7 @@ Slide 9 phút, live demo 16 phút, phần game mở và kết 3,5 phút. Khán g
 
 1. Demo bắt đầu từ một **email khách hàng mơ hồ bằng tiếng Anh**, để BA và QA không thấy đây chỉ là trò chơi.
 2. Mỗi chặng demo có **giới hạn thời gian và điểm lưu** dựng sẵn.
-3. Game mở màn rút còn **2 trận**, phần kết 1,5 phút.
+3. ~~Game mở màn rút còn 2 trận~~ Từ 14/10 game không còn chế độ nhanh: phải dẹp đủ **12 trận** mới tới màn đăng cơ (Q-31). Xem ghi chú ⚠ ở mục 3.
 4. Slide nghiêng về Dev (2 slide Dev, 1 BA, 1 QA); phần demo cân bằng ba vai trò.
 5. **Khán giả chơi chính tính năng vừa được xây** ngay đầu phần hỏi đáp.
 
@@ -29,19 +29,21 @@ Slide 9 phút, live demo 16 phút, phần game mở và kết 3,5 phút. Khán g
 
 | Thời gian | Phần | Trên màn hình | Giới hạn cứng |
 | --- | --- | --- | --- |
-| 0:00–2:00 | Mở màn: 2 trận, khán giả bỏ phiếu A/B/C trong chat | Game, chế độ nhanh | Sau 2:30 thì về bản đồ |
+| 0:00–2:00 (cần xếp lại, xem ⚠ dưới bảng) | Mở màn: chiến dịch 12 trận, khán giả bỏ phiếu A/B/C trong chat | Game | Chưa chốt |
 | 2:00–11:00 | Slide 1–9 | Claude Slides | 11:30 |
 | 11:00–14:00 | Demo chặng 1: BA | Ứng dụng Claude | Sau 14:30 nhảy tới điểm lưu `cp1` |
 | 14:00–21:00 | Demo chặng 2: Dev | Claude Code trong terminal + game trên trình duyệt | Sau 21:30 nhảy tới `cp2` |
 | 21:00–25:00 | Demo chặng 3: QA | Claude Code + Playwright | Sau 25:30 nhảy tới `cp3` |
 | 25:00–27:00 | Đẩy nhánh demo lên GitHub (CI chạy, Vercel tạo link xem trước). Co-host xoá trắng bảng vàng production rồi đưa link production và mã sự kiện vào chat Meet | Terminal, rồi bảng vàng | Production đã chạy sẵn bản `final`, không deploy gì trên sân khấu |
 | 27:00–28:30 | Slide 10: mỗi vai trò làm gì trong tuần này | Slide | — |
-| 28:30–30:00 | Kết: lên ngôi 968, Hịch Cờ Lau, "Claude" | Game | — |
+| 28:30–30:00 | Kết: bảng điểm (Enter), đăng cơ 968, Hịch Cờ Lau, "Claude" | Game | — |
 | 30:00–35:00 | Khán giả chơi chế độ đủ 12 trận; bắt đầu hỏi đáp | Bảng vàng trực tiếp (phím `L`) | — |
 | 35:00–58:00 | Hỏi đáp theo nhóm chủ đề | Slide 11 làm nền | — |
 | 58:00–60:00 | Xướng danh 3 người đứng đầu bảng vàng | Bảng vàng | — |
 
 Co-host giữ giờ và báo hiệu trong chat khi tới mỗi giới hạn cứng, để người trình bày không phải tự xem đồng hồ.
+
+> **⚠ Thời lượng: 12 trận trên sân khấu.** Lịch trên viết cho bản có chế độ nhanh (2 trận trong 2 phút). Từ 14/10 màn đăng cơ chỉ mở sau 12 trận. Ước tính từ kịch bản ([06](06-kich-ban-va-hoi-dap-khan-gia.md) mục 1: 2 trận cùng lời dẫn gói trong 2:00): mỗi trận khoảng 50 giây (bỏ phiếu 20 giây, đọc kết quả chat, tiếng hô, câu "Chiêu Claude", chuyển về bản đồ). 12 trận khoảng 10 phút, cộng lời dẫn đầu và bảng điểm khoảng 1 phút. Phần game mở và kết từ 3,5 phút thành khoảng 13 đến 14 phút, **thêm khoảng 10 đến 11 phút** vào chương trình 30 phút trình bày. Chưa xếp lại lịch; việc chờ Thông quyết: (a) cắt thời gian bỏ phiếu mỗi trận còn 10 giây, thành khoảng 6 phút; (b) chia 12 trận vào nhiều chỗ (vài trận mở màn, phần còn lại xen giữa các chặng demo, trận cuối trước phần kết); (c) rút bớt slide; (d) cho khán giả tự chơi từ trước và người trình bày chỉ mở lại phần đã chơi.
 
 ## 4. Dàn ý slide (slide tiếng Anh)
 
@@ -101,7 +103,7 @@ flowchart LR
 | # | Gói việc | Người làm | Xong khi | Trạng thái |
 | --- | --- | --- | --- | --- |
 | 1 | Repo, API bảng vàng, Redis, mã sự kiện | Claude | API trả lời trên link thật | Code xong, đã qua red-team review; chờ Thông đẩy lên GitHub |
-| 2 | Game bản đầy đủ: tính điểm, bảng vàng, lên ngôi 968, Hịch Cờ Lau, cờ lau mới | Claude | Chạy trên link thật | Xong; 25 kiểm thử chạy qua |
+| 2 | Game bản đầy đủ: tính điểm, bảng vàng, đăng cơ 968, Hịch Cờ Lau, cờ lau mới | Claude | Chạy trên link thật | Xong; 25 kiểm thử chạy qua |
 | 3 | Tạo `cp0`: luật tính điểm để trống, bỏ test của luật này | Claude | `cp0` chạy được, gắn tag | Thứ Tư 14/10 |
 | 4 | Slide 1–11 bằng Claude Slides, tiếng Anh | Claude, Thông duyệt | Thông duyệt | Chưa làm |
 | 5 | Kịch bản lời nói tiếng Việt | Claude, Thông duyệt | Thông duyệt | Có bản đầu: [06 Kịch bản](06-kich-ban-va-hoi-dap-khan-gia.md) |
