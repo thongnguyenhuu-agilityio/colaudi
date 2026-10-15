@@ -272,6 +272,30 @@ button.tile:hover:not(:disabled) { border-color: var(--gold); background: var(--
 .fin .row { justify-content: center; }
 .made { font-size: .72em; color: var(--dim); }
 
+/* Khao quân (buy me a coffee): a modal with the bank QR on dó paper, like the decree */
+.ghost.treat { color: var(--gold); border-color: var(--gold-soft); }
+.ghost.treat:hover { color: var(--lacquer); background: var(--gold); border-color: var(--gold); }
+dialog.treat-box { width: min(calc(100% - 32px), 30rem); max-height: calc(100% - 32px); overflow: auto; background: var(--panel); color: var(--plume); border: 1.5px solid var(--gold-soft); border-radius: 14px; padding: 0; box-shadow: 0 24px 60px rgba(0,0,0,.55); }
+dialog.treat-box::backdrop { background: rgba(10, 5, 3, .72); }
+.treat-in { display: grid; gap: .85rem; padding: 1.2rem 1.3rem 1.1rem; position: relative; }
+.treat-in .x { position: absolute; top: .6rem; right: .6rem; }
+.treat-in h3 { font-size: 2em; color: var(--gold); padding-right: 2.5rem; }
+.treat-in .lead { color: var(--dim); font-size: .9em; }
+.slip { background: radial-gradient(ellipse at 20% 10%, rgba(255,255,255,.35), transparent 55%), repeating-linear-gradient(97deg, rgba(110,80,40,.05) 0 2px, transparent 2px 7px), var(--paper);
+  color: var(--ink); border-radius: 6px; border: 1px solid var(--paper-edge); padding: .9rem; display: grid; grid-template-columns: 9.5rem minmax(0, 1fr); gap: .9rem; align-items: center; }
+.slip img { width: 100%; height: auto; display: block; border-radius: 4px; }
+.slip dl { margin: 0; display: grid; gap: .45rem; font-size: .82em; min-width: 0; }
+.slip dt { font-size: .72em; text-transform: uppercase; letter-spacing: .1em; color: var(--ink-soft); font-weight: 700; }
+.slip dd { margin: 0; display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; font-weight: 700; overflow-wrap: anywhere; }
+.slip .num { font-family: var(--mono); font-variant-numeric: tabular-nums; letter-spacing: .04em; }
+.copy { border: 1px solid var(--ink-soft); background: none; color: var(--ink); border-radius: 5px; font-size: .78em; padding: .05em .55em; font-weight: 500; }
+.copy:hover { background: var(--ink); color: var(--paper); }
+.copy.done { border-color: var(--seal); color: var(--seal); }
+.how { font-size: .8em; color: var(--dim); }
+.how b { color: var(--plume); font-weight: 500; }
+.thanks { font-family: var(--display); font-style: italic; font-weight: 600; font-size: 1.2em; color: var(--plume); border-left: 3px solid var(--cinnabar); padding-left: .7em; }
+.made .link { background: none; border: 0; padding: 0; color: var(--gold); text-decoration: underline; text-underline-offset: .2em; font-size: 1em; }
+
 @media (max-width: 820px) {
   .title, .battle, .tally, .wall, .crown { grid-template-columns: 1fr; }
   .fin { grid-template-columns: 1fr; grid-template-areas: "ago" "morph" "born" "decree" "call" "row"; min-height: 0; gap: 1.2rem; }
@@ -291,6 +315,14 @@ button.tile:hover:not(:disabled) { border-color: var(--gold); background: var(--
   .seal .stamp span { font-size: 32px; }
   .tablets { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .wall .head { position: static; }
+  dialog.treat-box { width: 100%; max-width: none; margin: auto 0 0; border-radius: 16px 16px 0 0; border-bottom: 0; }
+}
+@media (max-width: 480px) {
+  .slip { grid-template-columns: 1fr; justify-items: center; }
+  .slip img { width: 8.5rem; }
+  .treat-in { gap: .6rem; padding: 1rem 1rem .9rem; }
+  .treat-in h3 { font-size: 1.7em; }
+  .slip dl { width: 100%; }
 }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
@@ -305,6 +337,7 @@ button.tile:hover:not(:disabled) { border-color: var(--gold); background: var(--
     <div class="pips" id="pips" aria-label="Tiến độ dẹp loạn"></div>
     <span class="scorebox" id="scorebox" aria-live="polite"></span>
     <div class="tools">
+      <button class="ghost treat" id="treatBtn" type="button">Khao quân</button>
       <button class="ghost" id="boardBtn" type="button">Bảng vàng</button>
       <button class="ghost" id="snd" type="button">Âm thanh: bật</button>
       <button class="ghost" id="home" type="button">Màn đầu</button>
@@ -312,6 +345,26 @@ button.tile:hover:not(:disabled) { border-color: var(--gold); background: var(--
   </header>
   <main id="main"></main>
 </div>
+<!-- Khao quân. TODO(owner): public/qr.png and the bank details below are samples; replace them with the real account. -->
+<dialog class="treat-box" id="treat" aria-labelledby="treatTitle">
+  <div class="treat-in">
+    <button class="ghost x" type="button" id="treatClose" aria-label="Đóng">✕</button>
+    <div class="eyebrow">Khao quân</div>
+    <h3 id="treatTitle">Mời người làm game một ly cà phê</h3>
+    <p class="lead">Trò chơi miễn phí, không quảng cáo. Thấy vui thì khao quân bao nhiêu cũng quý.</p>
+    <div class="slip">
+      <img src="qr.png" width="636" height="726" alt="Mã QR chuyển khoản ngân hàng">
+      <dl>
+        <div><dt>Ngân hàng</dt><dd>Vietcombank</dd></div>
+        <div><dt>Chủ tài khoản</dt><dd>NGUYEN VAN A</dd></div>
+        <div><dt>Số tài khoản</dt><dd><span class="num">0123 456 789</span><button class="copy" type="button" data-copy="0123456789">Sao chép</button></dd></div>
+        <div><dt>Nội dung</dt><dd><span>Khao quan Co Lau</span><button class="copy" type="button" data-copy="Khao quan Co Lau">Sao chép</button></dd></div>
+      </dl>
+    </div>
+    <p class="how">Mở app ngân hàng, chọn <b>Quét QR</b>. Trên điện thoại: chụp màn hình rồi chọn ảnh trong app.</p>
+    <p class="thanks">Đa tạ tướng sĩ đã khao quân!</p>
+  </div>
+</dialog>
 <script type="module" src="game.js"></script>
 </body>
 </html>

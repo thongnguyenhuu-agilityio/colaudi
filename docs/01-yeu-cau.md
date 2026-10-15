@@ -82,7 +82,9 @@ Công ty phần mềm thuê ngoài, khách hàng nói tiếng Anh. Thông trình
 | FR-16 | Cờ lau vẽ giống cây lau thật: thân có đốt, lá dài hẹp, bông lau tơ mềm bay theo gió | Bắt buộc |
 | FR-17 | Điều khiển bằng bàn phím: A/B/C, Enter, Esc, L (bảng vàng), S (tới đoạn kết), M (tắt tiếng) | Bắt buộc |
 | FR-18 | Có âm thanh trống và chiêng, bật tắt được | Nên có |
+| FR-20 | `public/index.html` → `#treatBtn`, `<dialog id="treat">`, ảnh `public/qr.png`; `public/game.js` → khối "khao quân" (`openTreat`, sao chép, bỏ qua phím game khi hộp mở), liên kết `data-act="treat"` ở cảnh `finale` | `e2e/treat.spec.js` (8 ca: mở từ thanh công cụ, ảnh QR tải được, đóng bằng Esc / nút ✕ / bấm nền; phím A, B, C, L, S không tác động trận đang đánh khi hộp mở; Enter tiếp tục điều khiển game sau khi đóng; sao chép đúng số tài khoản; trình duyệt từ chối clipboard thì bôi đen chữ và không báo "đã chép"; liên kết ở màn kết mở hộp; `?presenter` không có nút lẫn liên kết; điện thoại 375×667 hộp nằm gọn, không cuộn ngang) |
 | FR-19 | Màn kết trình bày lời hịch như chiếu thư trên giấy dó, đóng ấn son khắc "CLAU · DE" (không dùng logo nhãn hiệu Claude) | Bắt buộc |
+| FR-20 | "Khao quân" (ủng hộ người làm game): nút trên thanh công cụ và một liên kết ở màn kết mở hộp có mã QR ngân hàng, tên ngân hàng, chủ tài khoản, số tài khoản và nội dung chuyển khoản (có nút sao chép); ẩn ở chế độ `?presenter` | Nên có |
 
 ---
 
@@ -115,7 +117,7 @@ Công ty phần mềm thuê ngoài, khách hàng nói tiếng Anh. Thông trình
 
 ## 7. Nhật ký hỏi đáp làm rõ yêu cầu
 
-Toàn bộ 30 câu hỏi, yêu cầu và góp ý, kèm câu trả lời, phương án cân nhắc và quyết định, nằm ở [02 Hỏi đáp và quyết định](02-hoi-dap.md). Các mục ảnh hưởng trực tiếp tới yêu cầu:
+Toàn bộ 31 câu hỏi, yêu cầu và góp ý, kèm câu trả lời, phương án cân nhắc và quyết định, nằm ở [02 Hỏi đáp và quyết định](02-hoi-dap.md). Các mục ảnh hưởng trực tiếp tới yêu cầu:
 
 | Yêu cầu | Mục hỏi đáp |
 | --- | --- |
@@ -127,6 +129,7 @@ Toàn bộ 30 câu hỏi, yêu cầu và góp ý, kèm câu trả lời, phươn
 | NFR-01, NFR-02 (chi phí, tải) | Q-13, Q-15 |
 | NFR-03, NFR-05 (hiển thị qua phòng relay, nội bộ) | Q-02 đến Q-06 |
 | NFR-09 (lời văn tôn trọng người nghe) | Q-24 |
+| FR-20 (khao quân) | Q-31 |
 
 ---
 
@@ -196,6 +199,7 @@ Sáu quyết định kiến trúc (ADR-01 đến ADR-06), kèm sơ đồ, API v�
 | V-03 | Tên co-host và người vận hành phòng relay B | Thông |
 | V-04 | Đồng ý chạy game trên link công khai có mã sự kiện | Thông |
 | V-05 | Phần thưởng nhỏ cho 3 người đứng đầu bảng vàng (không bắt buộc) | Thông |
+| V-07 | Thay `public/qr.png` (đang là ảnh mẫu "không chuyển tiền") và thông tin ngân hàng mẫu trong `public/index.html` bằng tài khoản thật trước khi đẩy `main` | Thông |
 | V-06 | Deploy lần đầu | Thông, theo [07 Deployment plan](07-deployment.md) mục 4 |
 
 ---

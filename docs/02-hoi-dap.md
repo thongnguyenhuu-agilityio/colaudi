@@ -43,6 +43,7 @@ Tài liệu này ghi lại mọi câu hỏi, yêu cầu và góp ý đã trao đ
 | [Q-28](#q-28) | 13/10 | Viết “Cờ Lau” đi: tiếng lóng trong ngoặc kép, “đi” là lời khuyến khích | Thông |
 | [Q-29](#q-29) | 13/10 | Kế hoạch cài đặt và triển khai | Claude đề xuất, Thông cung cấp thông tin |
 | [Q-30](#q-30) | 13/10 | Red-team review kế hoạch và code | Claude (người review độc lập), Thông đẩy GitHub |
+| [Q-31](#q-31) | 15/10 | Khao quân (buy me a coffee) | Thông duyệt bản mẫu, Claude chọn cách làm |
 
 ---
 
@@ -579,3 +580,22 @@ Câu chốt "Cùng “Cờ Lau”, chúng ta tiến!" (Q-27) vốn đã đặt "
 
 **Kết quả:** [07 Deployment plan](07-deployment.md) viết lại; [08 Red-team review](08-red-team-review.md); cập nhật 01, 03, 04, 05, 06; NFR-02, NFR-06, NFR-07 sửa; thêm NFR-10; thêm ADR-07, ADR-08.
 
+---
+
+<a id="q-31"></a>
+## Q-31 · Khao quân (buy me a coffee)
+
+- **Ngày:** 15/10 · **Quyết định bởi:** Thông duyệt bản mẫu; Claude chọn cách làm
+
+**Yêu cầu:** Xây chức năng "buy me a coffee" để nhận tiền ủng hộ.
+
+**Trả lời:** Đặt tên "Khao quân" cho hợp giọng game. Nút vàng "Khao quân" trên thanh công cụ và một liên kết nhẹ ở màn kết mở hộp có mã QR ngân hàng trên nền giấy dó, thông tin tài khoản và nút sao chép. Bản mẫu giao diện được Thông duyệt trước khi viết code.
+
+| Phương án | Quyết định | Lý do |
+| --- | --- | --- |
+| Ảnh QR ngân hàng tĩnh trong `public/` | **Chọn** | Không server, không phí, không thêm thư viện; tiền vào thẳng tài khoản |
+| Sinh QR theo số tiền chọn sẵn (VietQR động) | Loại | Cần dịch vụ ngoài hoặc tự viết bộ mã hoá QR; thêm rủi ro trước ngày thuyết trình |
+| Trang Buy Me a Coffee / Ko-fi | Loại | Phí, cần thẻ quốc tế, người chơi Việt Nam quen quét QR ngân hàng hơn |
+| Ẩn khi `?presenter` | **Chọn** | Màn chiếu trong buổi nói chuyện nội bộ không có lời xin tiền |
+
+**Kết quả:** FR-20; `e2e/treat.spec.js`; việc còn mở V-07 (thay QR và thông tin ngân hàng thật).

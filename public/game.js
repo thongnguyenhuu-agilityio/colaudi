@@ -814,7 +814,7 @@ const scenes = {
         <span class="kicker">Cờ đã phất. Tướng sĩ, xuất trận!</span>
         <span class="cta">Cùng “Cờ Lau”,<br>chúng ta tiến!</span>
       </div>
-      <div class="row" data-at="6"><button class="btn alt" data-act="board">Xem bảng vàng</button><button class="btn alt" data-act="title">Chơi lại</button><span class="made">Trò chơi này được làm cùng Claude.</span></div>
+      <div class="row" data-at="6"><button class="btn alt" data-act="board">Xem bảng vàng</button><button class="btn alt" data-act="title">Chơi lại</button><span class="made">Trò chơi này được làm cùng Claude.${PRESENTER ? '' : ' Thấy vui? <button class="link" type="button" data-act="treat">Khao quân một ly cà phê</button>'}</span></div>
     </section>`
 };
 
@@ -919,9 +919,30 @@ document.addEventListener('click', e => {
   else if (a === 'map') go('map');
   else if (a === 'fight') { go('battle', { cur: b.dataset.id, wrong: [], resolved: false }); sfx.cue('fight'); }
   else if (a === 'pick') pick(+b.dataset.i);
+  else if (a === 'treat') openTreat(b);
   else if (a === 'back') go(state.prev && state.prev !== 'board' ? state.prev : 'title');
   else if (['surrender', 'tally', 'crown', 'finale', 'title', 'board'].includes(a)) go(a);
 });
+/* ---------- khao quân (buy me a coffee) ---------- */
+// Hidden in presenter mode: the shared screen of the talk never shows a request for money.
+const treat = document.getElementById('treat'), treatBtn = document.getElementById('treatBtn');
+treatBtn.hidden = PRESENTER;
+function openTreat(from) { from?.blur(); if (!treat.open) treat.showModal(); }
+treatBtn.onclick = () => openTreat(treatBtn);
+document.getElementById('treatClose').onclick = () => treat.close();
+treat.addEventListener('click', e => { if (e.target === treat) treat.close(); }); // a click on the backdrop
+treat.querySelectorAll('.copy').forEach(b => b.addEventListener('click', async () => {
+  const shown = b.previousElementSibling;
+  try {
+    await navigator.clipboard.writeText(b.dataset.copy);
+    b.textContent = 'Đã chép'; b.classList.add('done');
+  } catch { // clipboard refused: select the text so the player can copy it by hand, never claim it was copied
+    getSelection().selectAllChildren(shown);
+    b.textContent = 'Đã bôi đen, hãy tự chép'; b.classList.remove('done');
+  }
+  setTimeout(() => { b.textContent = 'Sao chép'; b.classList.remove('done'); }, 2400);
+}));
+
 document.getElementById('home').onclick = e => { e.currentTarget.blur(); go('title'); };
 document.getElementById('boardBtn').onclick = e => { e.currentTarget.blur(); go('board'); };
 const sndBtn = document.getElementById('snd');
@@ -939,10 +960,12 @@ sndBtn.onclick = () => { sndBtn.blur(); if (!state.muted && sampleState === 'fai
 document.addEventListener('keydown', e => {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
   if (e.target.matches('input')) return;
+  if (treat.open) return; // the dialog owns the keyboard; Esc closes it natively
   const k = e.key.toLowerCase();
   if (state.scene === 'battle' && !state.resolved && ['a', 'b', 'c', '1', '2', '3'].includes(k)) { pick('abc123'.indexOf(k) % 3); return; }
   if (k === 'enter' || k === ' ' || k === 'arrowright') {
-    if (document.activeElement?.matches('button') && k !== 'arrowright') return;
+    // Focus can linger on the just-closed dialog's ✕ before its close event runs; that button must not swallow Enter.
+    if (document.activeElement?.matches('button') && !treat.contains(document.activeElement) && k !== 'arrowright') return;
     e.preventDefault();
     if ((state.scene === 'crown' || state.scene === 'finale') && advance()) return;
     $main.querySelector('[data-primary]')?.click();
