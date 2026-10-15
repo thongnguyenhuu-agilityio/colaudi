@@ -78,11 +78,10 @@ const LORDS = [
     tip: 'Claude không thay người giỏi. <b>Claude cho người giỏi thêm quân.</b>' }
 ];
 const POS = [[1,1],[1,2],[1,3],[1,4],[2,4],[3,4],[4,4],[4,3],[4,2],[4,1],[3,1],[2,1]];
-const QUICK_WINS = 2;
 const PRESENTER = (() => { try { return new URLSearchParams(location.search).has('presenter'); } catch { return false; } })();
 
 /* ---------- state ---------- */
-const fresh = () => ({ scene: 'title', prev: 'title', mode: 'quick', done: {}, wrongs: {}, cur: null, wrong: [], resolved: false,
+const fresh = () => ({ scene: 'title', prev: 'title', done: {}, wrongs: {}, cur: null, wrong: [], resolved: false,
   startedAt: 0, finishedAt: 0, runId: '', submitted: null, muted: false });
 let state = fresh();
 let timers = [];
@@ -230,6 +229,9 @@ function makeBus(c, o = {}) {
   for (let i = 0; i < curve.length; i++) curve[i] = Math.tanh(3 * (i / 511.5 - 1));
   return { master, ir: hallIR(c), noise, curve };
 }
+// iOS Safari routes Web Audio through the "ambient" session, which the ring/silent switch mutes; most iPhones sit on
+// silent. Asking for a "playback" session (Safari 16.4+) makes the game audible like a video would be.
+try { if (navigator.audioSession) navigator.audioSession.type = 'playback'; } catch { /* not supported */ }
 function ensureCtx() {
   if (!ac) { ac = new (window.AudioContext || window.webkitAudioContext)(); bus = makeBus(ac); }
   return ac;
@@ -436,19 +438,12 @@ const CUES = {
     play(MID, t, { gain: 0.5, rate: 0.6, lp: 500, send: 0.3 });
     gong(t + 0.05, 0.45, { rates: [1, 1.06], cap: [0.4, 1.8] });
   },
-  // Surrender cascade: one hit per tile, rising in pitch and level.
-  tile(t, i, n) {
-    const p = n > 1 ? i / (n - 1) : 1;
-    play(MID, t, { gain: 0.3 + 0.45 * p, rate: 0.8 + 0.5 * p, send: 0.25 });
-    syn.skin(t, 0.15 + 0.2 * p);
-  },
-  end(t) { ens(BIG, t + 0.1, 0.9); gong(t + 0.1, 1); },
   submitted(t) { gong(t, 0.9); roll(t, [[.1, .5], [.25, .6], [.38, .7], [.5, .8]], 0.85); },
   // Coronation: one arc with ONE climax (step 2). Steps 0-1 are sparse strokes, step 3 a single accent, steps 4-6 are
-  // silent so the text breathes (the step-2 gong rings on, starts to fade at 2 s and is gone by 6.5 s), step 7 closes.
+  // silent so the text breathes (the step-2 gong rings on under them, ducked by step 3), step 7 closes.
   crown(t, n) {
     const B = { bright: true };
-    if (n === 0) { ens(BIG, t, 0.95, B); ens(BIG, t + 1.3, 1.1, B); } // two spaced strokes
+    if (n === 0) { ens(BIG, t, 0.95, B); ens(BIG, t + GAP.crown / 2000, 1.1, B); } // two strokes, the second half-way to step 1
     else if (n === 1) ens(MID, t, 0.95, B); // one medium stroke
     else if (n === 2) { ens(BIG, t, 1, B); horn(t, 0.7, { dur: 3.5 }); gong(t, 0.9, { bright: true, cap: [2, 6.5] }); } // tutti: the climax
     else if (n === 3) { duck(t, 0.15); ens(BIG, t + 0.05, 1.2, B); } // one accent over the ringing gong
@@ -468,7 +463,7 @@ const SYN_CUES = {
   start: t => syn.drum(t), fight: t => syn.drum(t),
   tick: CUES.tick, timeup: t => syn.gong(t),
   correct: t => syn.roll(t), wrong: t => syn.bad(t),
-  tile: (t, i) => { if (i % 3 === 0) syn.drum(t); }, end: t => syn.gong(t), submitted: t => syn.roll(t),
+  submitted: t => syn.roll(t),
   crown: (t, n) => { if (n === 2) syn.gong(t); else if ([0, 1, 3, 7].includes(n)) syn.drum(t, n === 1 ? 0.7 : 1); },
   finale: (t, n) => { if (n === 3) syn.gong(t); else if (n === 6) { syn.drum(t); syn.gong(t); } else if (n === 1 || n === 2 || n === 5) syn.drum(t); }
 };
@@ -516,11 +511,13 @@ document.addEventListener('visibilitychange', () => {
 });
 // The first key or click wakes the context (browsers keep it suspended until then).
 const unlock = () => { try { if (ac && !state.muted && !document.hidden && ac.state !== 'running') ac.resume().catch(() => {}); } catch { /* never throw */ } };
-addEventListener('pointerdown', unlock, true); addEventListener('keydown', unlock, true);
+// iOS only grants audio on touchend/click (pointerdown is not a user activation there).
+['pointerdown', 'touchend', 'click', 'keydown'].forEach(e => addEventListener(e, unlock, { capture: true, passive: true }));
 // Measurement hook for the offline renders in docs/09 §6 (only with ?soundtest).
 if (PRESENTER && new URLSearchParams(location.search).has('soundtest')) {
   window.__sound = {
     ready: async () => { await loadSamples(); return sampleState; },
+    get gap() { return GAP; }, // a getter: GAP is declared further down the module
     // script: [[atSeconds, cueName | '@scene', a, b], ...] -> { sr, data: [L, R] } rendered through the real bus
     async render(script, seconds, { clip = true, seed = 1 } = {}) {
       const sr = 44100, off = new OfflineAudioContext(2, Math.ceil(sr * seconds), sr);
@@ -595,14 +592,14 @@ const lb = {
     let r;
     try {
       r = await fetch('/api/leaderboard', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(entry) });
-    } catch { throw new Error('Không kết nối được máy chủ. Kiểm tra mạng rồi bấm Ghi danh lần nữa.'); }
+    } catch { throw new Error('Chưa liên lạc được với máy chủ. Kiểm tra mạng rồi bấm Ghi danh lần nữa.'); }
     const j = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(j.error || 'Chưa ghi danh được. Bấm Ghi danh lần nữa.');
+    if (!r.ok) throw new Error(j.error || 'Ghi danh chưa thành. Bấm Ghi danh lần nữa.');
     return j;
   }
 };
 function boardRows(data, meId) {
-  if (!data.top.length) return '<div class="empty">Bảng vàng còn trống. Người đầu tiên ghi danh sẽ đứng đầu.</div>';
+  if (!data.top.length) return '<div class="empty">Bảng vàng còn bỏ trống. Ai ghi danh trước, người ấy đứng đầu.</div>';
   return data.top.map(e => `<div class="r ${e.id && e.id === meId ? 'me' : ''}"><span class="rk">${e.rank}</span><span class="nm">${esc(e.name)}</span><span class="pt">${e.points} điểm</span><span class="tm">${formatTime(e.timeSec)}</span></div>`).join('');
 }
 function startPolling(render) {
@@ -616,17 +613,21 @@ function stopPolling() { if (poll) clearInterval(poll); poll = null; }
 let voteT = []; // the vote bar's timers: rescheduled on every battle render so sound follows the visible bar
 function clearVote() { voteT.forEach(clearTimeout); voteT = []; }
 function clearTimers() { timers.forEach(clearTimeout); timers = []; clearVote(); }
+// The tally, the coronation and the finale exist only for a campaign with all 12 warlords done: every way in goes through here.
+const GATED = ['tally', 'crown', 'finale'];
+const gate = scene => (GATED.includes(scene) && wins() < BATTLES ? 'map' : scene);
 function go(scene, extra = {}) {
   clearTimers(); stopPolling(); sfx.scene();
+  Object.assign(state, extra); scene = gate(scene);
   if (scene === 'board' && state.scene !== 'board') state.prev = state.scene;
-  Object.assign(state, extra, { scene });
+  state.scene = scene;
   render(); $main.scrollTop = 0;
 }
 function header() {
   document.getElementById('pips').innerHTML = LORDS.map(l => `<span class="pip ${state.done[l.id] || ''}" title="${esc(l.name)}"></span>`).join('');
   const sb = document.getElementById('scorebox');
   const fought = Object.keys(state.wrongs).length;
-  sb.innerHTML = fought ? `Điểm <b>${points()}</b> / ${state.mode === 'full' ? MAX_POINTS : fought * 3}` : '';
+  sb.innerHTML = fought ? `Điểm <b>${points()}</b> / ${MAX_POINTS}` : '';
 }
 
 /* ---------- scenes ---------- */
@@ -636,13 +637,11 @@ const scenes = {
       <div class="stack">
         <div class="eyebrow">Hoa Lư · thế kỷ X</div>
         <h1>“Cờ Lau” đi</h1>
-        <p class="sub">Dẹp loạn mười hai sứ quân, phiên bản dân phần mềm.</p>
-        <div class="row">
-          <button class="btn" data-primary data-act="start-quick">Tập trận nhanh · 2 trận</button>
-          <button class="btn alt" data-act="start-full">Đánh đủ 12 trận · ghi danh bảng vàng</button>
-        </div>
-        ${PRESENTER ? '' : '<p class="keys"><kbd>A</kbd> <kbd>B</kbd> <kbd>C</kbd> chọn chiêu · <kbd>Enter</kbd> tiếp tục · <kbd>Esc</kbd> về bản đồ</p>'}
-        <p class="keys" ${PRESENTER ? '' : 'hidden'}><kbd>A</kbd> <kbd>B</kbd> <kbd>C</kbd> chọn chiêu · <kbd>Enter</kbd> tiếp tục · <kbd>Esc</kbd> về bản đồ · <kbd>L</kbd> bảng vàng · <kbd>S</kbd> tới đoạn kết · <kbd>M</kbd> tắt tiếng</p>
+        <p class="sub">Dẹp loạn mười hai sứ quân, bản dành cho giới phần mềm.</p>
+        <div class="row"><button class="btn start" data-primary data-act="start"><span>Khởi binh</span><i> – </i><span>dẹp loạn 12 sứ quân</span><i> – </i><span>lưu danh thiên cổ</span></button></div>
+        <p class="keys">Dẹp đủ mười hai sứ quân mới được đăng cơ, danh xưng ghi lên bảng vàng.</p>
+        ${PRESENTER ? '' : '<p class="keys"><kbd>A</kbd> <kbd>B</kbd> <kbd>C</kbd> chọn chiêu · <kbd>Enter</kbd> tiếp bước · <kbd>Esc</kbd> về địa đồ</p>'}
+        <p class="keys" ${PRESENTER ? '' : 'hidden'}><kbd>A</kbd> <kbd>B</kbd> <kbd>C</kbd> chọn chiêu · <kbd>Enter</kbd> tiếp bước · <kbd>Esc</kbd> về địa đồ · <kbd>L</kbd> bảng vàng · <kbd>M</kbd> tắt tiếng</p>
       </div>
     </section>`,
 
@@ -653,13 +652,13 @@ const scenes = {
       <p>Mỗi phen xuất quân, cả bọn hô vang:</p>
       <div class="cry">“Cờ Lau” đi!</div>
       <p>Đến khi trưởng thành, thiên hạ loạn mười hai sứ quân, mỗi người chiếm giữ một cõi. Lạ thay, sứ quân nào cũng mang đúng một nỗi khổ của nghề phần mềm.</p>
-      ${state.mode === 'full' ? '<p class="keys">Đánh đủ 12 trận: đúng ngay lần đầu được 3 điểm, sai một lần được 1 điểm, sai hai lần được 0 điểm. Bằng điểm thì ai nhanh hơn xếp trên.</p>' : ''}
+      <p class="keys">Luật quân: đúng ngay lần đầu được 3 điểm, sai một lần được 1 điểm, sai hai lần không được điểm. Bằng điểm thì ai nhanh hơn xếp trên.</p>
       <div class="row"><button class="btn" data-primary data-act="map">Xuất quân</button></div>
     </section>`,
 
   map() {
-    const quick = state.mode === 'quick', n = wins();
-    const next = quick ? (n >= QUICK_WINS ? ['surrender', 'Tiếp tục'] : null) : (n >= BATTLES ? ['tally', 'Ghi danh bảng vàng'] : null);
+    const n = wins();
+    const next = n >= BATTLES ? ['tally', 'Ghi danh bảng vàng'] : null;
     const tiles = LORDS.map((l, i) => {
       const st = state.done[l.id];
       const stamp = st === 'won' ? 'Đã dẹp' : st === 'ally' ? 'Kết minh' : '';
@@ -673,7 +672,7 @@ const scenes = {
           <div class="eyebrow">Đại bản doanh</div>
           <h2>Hoa Lư</h2>
           <div class="count"><b>${n}</b> / 12 sứ quân đã thu phục</div>
-          <p class="keys">${quick ? `Tập trận nhanh: thắng ${QUICK_WINS} trận, các sứ quân còn lại sẽ xin quy hàng.` : 'Đánh đủ 12 trận để ghi danh bảng vàng.'}</p>
+          <p class="keys">Dẹp đủ mười hai sứ quân mới được đăng cơ.</p>
           ${next ? `<div class="row"><button class="btn" data-primary data-act="${next[0]}">${next[1]}</button></div>` : ''}
         </div>
       </div></div></section>`;
@@ -687,9 +686,7 @@ const scenes = {
     }).join('');
     const lastBad = state.wrong.length ? l.bad[state.wrong.at(-1)] : '';
     const n = wins();
-    const next = state.mode === 'full'
-      ? (n >= BATTLES ? ['tally', 'Ghi danh bảng vàng'] : ['map', 'Về bản đồ'])
-      : (n >= QUICK_WINS ? ['surrender', 'Tiếp tục'] : ['map', 'Về bản đồ']);
+    const next = n >= BATTLES ? ['tally', 'Ghi danh bảng vàng'] : ['map', 'Về địa đồ'];
     const earned = state.resolved ? pointsFor(state.wrongs[l.id]) : 0;
     return `<section class="scene battle">
       <div class="foe">
@@ -698,10 +695,10 @@ const scenes = {
         <div class="alias">${l.alias}</div>
         <blockquote>“${l.taunt}”</blockquote>
         ${l.note ? `<p class="note">${l.note}</p>` : ''}
-        <div class="row"><button class="ghost" data-act="map">← Bản đồ</button></div>
+        <div class="row"><button class="ghost" data-act="map">← Địa đồ</button></div>
       </div>
       <div class="fight">
-        <div class="eyebrow">Thử thách</div>
+        <div class="eyebrow">Khiêu chiến</div>
         <div class="q">${l.q}</div>
         ${opts}
         ${state.resolved ? `<div class="result ${l.ally ? 'ally' : ''}">
@@ -710,21 +707,8 @@ const scenes = {
             <div class="row"><button class="btn" data-primary data-act="${next[0]}">${next[1]}</button></div>
           </div>`
           : `<div class="react" aria-live="polite">${lastBad}</div>
-             <div class="vote"><span id="vote-msg">Khán giả bỏ phiếu trong chat: A, B hay C?</span><div class="track"><div class="fill"></div></div></div>`}
+             <div class="vote"><span id="vote-msg">Ba quân bỏ phiếu trong chat: A, B hay C?</span><div class="track"><div class="fill"></div></div></div>`}
       </div>
-    </section>`;
-  },
-
-  surrender() {
-    const tiles = LORDS.map(l => {
-      const st = state.done[l.id] || 'pending';
-      return `<div class="tile ${st}" data-id="${l.id}"><span class="nm">${l.name}</span><span class="ld">${l.land}</span></div>`;
-    }).join('');
-    return `<section class="scene surrender">
-      <div class="eyebrow">Năm 967</div>
-      <h2>Nghe tiếng hô “Cờ Lau” đi, các sứ quân còn lại khiếp vía, lần lượt xin quy phục</h2>
-      <div class="mini">${tiles}</div>
-      <div class="row"><button class="btn" data-primary data-act="crown">Lên ngôi</button></div>
     </section>`;
   },
 
@@ -737,18 +721,18 @@ const scenes = {
         <div class="eyebrow">Mười hai sứ quân đã quy phục</div>
         <div class="big">${points()}<small> / ${MAX_POINTS} điểm</small></div>
         <div class="breakdown"><span>Đúng ngay: <b>${counts[0]}</b> trận</span><span>Sai một lần: <b>${counts[1]}</b></span><span>Sai hai lần: <b>${counts[2]}</b></span><span>Thời gian: <b>${formatTime(done?.timeSec ?? timeSec())}</b></span></div>
-        ${done ? `<p class="msg ok">Đã ghi danh <b>${esc(done.name)}</b>: hạng ${done.rank} trên ${done.total} người.</p>` : lb.closed ? '<p class="msg">Bảng vàng đã khoá sổ. Cảm ơn đã tham gia tập trận!</p>' : `
+        ${done ? `<p class="msg ok">Đã ghi danh <b>${esc(done.name)}</b>: hạng ${done.rank} trên ${done.total} người.</p>` : lb.closed ? '<p class="msg">Bảng vàng đã khoá sổ. Đa tạ đã dự cuộc tập trận!</p>' : `
         <form id="sign" class="card" style="padding:0;border:0;background:none" novalidate>
-          <div class="field"><label for="pname">Tên ghi trên bảng vàng (tối đa 20 ký tự)</label><input id="pname" name="pname" maxlength="20" autocomplete="nickname" required></div>
+          <div class="field"><label for="pname">Danh xưng ghi trên bảng vàng (tối đa 20 ký tự)</label><input id="pname" name="pname" maxlength="20" autocomplete="nickname" required></div>
           <div class="field" id="codeField" ${lb.codeRequired ? '' : 'hidden'}><label for="pcode">Mã sự kiện (chiếu trong buổi họp)</label><input id="pcode" name="pcode" autocomplete="off"></div>
           <p class="msg" id="signMsg" aria-live="polite"></p>
           <div class="row"><button class="btn" type="submit" id="signBtn">Ghi danh</button></div>
         </form>`}
-        ${lb.mode === 'local' ? '<p class="local">Đang chạy bản xem thử: bảng vàng chỉ lưu trên trình duyệt này. Khi deploy lên Vercel, bảng vàng là chung cho mọi người.</p>' : ''}
-        <div class="row"><button class="btn ${done ? '' : 'alt'}" ${done ? 'data-primary' : ''} data-act="crown">Lên ngôi</button></div>
+        ${lb.mode === 'local' ? '<p class="local">Đang chạy bản xem thử: bảng vàng chỉ lưu trên trình duyệt này. Khi đưa lên Vercel, bảng vàng là chung cho mọi người.</p>' : ''}
+        <div class="row"><button class="btn ${done || PRESENTER ? '' : 'alt'}" ${done || PRESENTER ? 'data-primary' : ''} data-act="crown">Đăng cơ</button></div>
       </div>
       <div class="card">
-        <div class="row" style="justify-content:space-between"><h3 style="font-size:2em;color:var(--gold)">Bảng vàng</h3><span class="live" id="liveTotal">Đang tải…</span></div>
+        <div class="row" style="justify-content:space-between"><h3 style="font-size:2em;color:var(--gold)">Bảng vàng</h3><span class="live" id="liveTotal">Đang truyền tin…</span></div>
         <div class="board" id="board"></div>
       </div>
     </section>`;
@@ -758,10 +742,10 @@ const scenes = {
       <div class="head">
         <div class="eyebrow">Đại Cồ Việt · khoa tập trận</div>
         <h2>Bảng vàng</h2>
-        <span class="live" id="liveTotal">Đang tải…</span>
+        <span class="live" id="liveTotal">Đang truyền tin…</span>
         <p class="keys">Mười người dẫn đầu. Nhiều điểm hơn xếp trên; bằng điểm thì ai nhanh hơn xếp trên.</p>
         ${lb.mode === 'local' ? '<p class="local">Bản xem thử: chỉ hiện kết quả trên trình duyệt này.</p>' : ''}
-        <div class="row"><button class="btn alt" data-act="back">Quay lại</button></div>
+        <div class="row"><button class="btn alt" data-act="back">Trở lại</button></div>
       </div>
       <div class="board" id="board"></div>
     </section>`,
@@ -777,7 +761,7 @@ const scenes = {
       </div>
       <div class="edict">
         <div class="eyebrow" data-at="0">Năm Mậu Thìn · 968 · Kinh đô Hoa Lư</div>
-        <p class="lead" data-at="1">Mười hai sứ quân đều phục, giang sơn thu về một mối. Bấy giờ tại Hoa Lư, Đinh Bộ Lĩnh lên ngôi.</p>
+        <p class="lead" data-at="1">Mười hai sứ quân đều phục, giang sơn thu về một mối. Bấy giờ tại Hoa Lư, Đinh Bộ Lĩnh đăng cơ.</p>
         <div data-at="2"><div class="han" lang="zh-Hant">大勝明皇帝</div><h2>Đại Thắng Minh Hoàng Đế</h2></div>
         <div class="claim" data-at="3">Không xưng <s>Vương</s>. Xưng <em>Hoàng Đế</em>.</div>
         <p class="why" data-at="4">Lần đầu tiên người đứng đầu nước Việt xưng <b>Hoàng đế</b>, ngang hàng phương Bắc. Nhà Tống chỉ phong tước vương, song trong cõi Nam, các triều đại về sau đều noi theo.</p>
@@ -790,7 +774,7 @@ const scenes = {
         <div class="verse" data-at="6"><q>Một phen cất quân mà mười hai sứ quân phục hết</q><span>Sử gia Lê Văn Hưu bàn về Đinh Tiên Hoàng · Đại Việt sử ký</span></div>
         <div class="row legacy-row" data-at="7"><div class="legacy">Lưu danh thiên cổ.</div><button class="btn" data-primary data-act="finale">Ngàn năm sau…</button></div>
       </div>
-      <p class="hint" data-at="1"><kbd>Enter</kbd> sang nhịp kế</p>
+      <p class="hint" data-at="1"><kbd>Enter</kbd> để tiếp nhịp</p>
     </section>`,
 
   finale: () => `<section class="scene fin" id="fin">
@@ -814,7 +798,7 @@ const scenes = {
         <span class="kicker">Cờ đã phất. Tướng sĩ, xuất trận!</span>
         <span class="cta">Cùng “Cờ Lau”,<br>chúng ta tiến!</span>
       </div>
-      <div class="row" data-at="6"><button class="btn alt" data-act="board">Xem bảng vàng</button><button class="btn alt" data-act="title">Chơi lại</button><span class="made">Trò chơi này được làm cùng Claude.${PRESENTER ? '' : ' Thấy vui? <button class="link" type="button" data-act="treat">Khao quân một ly cà phê</button>'}</span></div>
+      <div class="row" data-at="6"><button class="btn alt" data-act="board">Xem bảng vàng</button><button class="btn alt" data-act="title">Khởi binh lại</button><span class="made">Trò chơi này dựng nên cùng Claude.${PRESENTER ? '' : ' Thấy vui? <button class="link" type="button" data-act="treat">Khao quân một ly cà phê</button>'}</span></div>
     </section>`
 };
 
@@ -828,10 +812,12 @@ function setStep(n) {
   });
   if (state.scene === 'crown' || state.scene === 'finale') sfx.cue(state.scene, n);
 }
-function stage(root, max, gap) {
-  stepRoot = root; stepMax = max; step = -1; advance(gap);
+function stage(root, max) {
+  stepRoot = root; stepMax = max; step = -1; advance();
 }
-function advance(gap = state.scene === 'crown' ? 2600 : 2400) {
+// Time between reveals (ms); Enter skips ahead.
+const GAP = { crown: 1500, finale: 1400 };
+function advance(gap = GAP[state.scene]) {
   clearTimers();
   const next = step + 1;
   if (next > stepMax) return false;
@@ -846,15 +832,8 @@ function render() {
   $main.innerHTML = scenes[state.scene]();
   if (state.scene === 'battle' && !state.resolved) {
     clearVote();
-    voteT.push(setTimeout(() => { const m = document.getElementById('vote-msg'); if (m) m.textContent = 'Hết giờ bỏ phiếu. Chốt đáp án!'; }, 20000));
+    voteT.push(setTimeout(() => { const m = document.getElementById('vote-msg'); if (m) m.textContent = 'Hết giờ bỏ phiếu. Mau chốt chiêu!'; }, 20000));
     if (PRESENTER) { voteT.push(setTimeout(() => sfx.cue('tick'), 15000)); voteT.push(setTimeout(() => sfx.cue('timeup'), 20000)); }
-  }
-  if (state.scene === 'surrender') {
-    const pending = [...$main.querySelectorAll('.tile.pending')];
-    pending.forEach((t, i) => timers.push(setTimeout(() => {
-      t.classList.remove('pending'); t.classList.add('won', 'fall'); state.done[t.dataset.id] = 'won'; header();
-      sfx.cue('tile', i, pending.length); if (i === pending.length - 1) sfx.cue('end');
-    }, 450 + i * 380)));
   }
   if (state.scene === 'crown') stage(document.getElementById('crown'), 7);
   if (state.scene === 'finale') stage(document.getElementById('fin'), 6);
@@ -862,7 +841,7 @@ function render() {
     startPolling(d => {
       const b = document.getElementById('board'), t = document.getElementById('liveTotal');
       if (b) b.innerHTML = boardRows(d, state.runId);
-      if (t) t.textContent = lb.stale ? 'Mất kết nối, đang thử lại…' : `${lb.mode === 'local' ? 'Trên máy này' : 'Cập nhật trực tiếp'} · ${d.total} người đã ghi danh`;
+      if (t) t.textContent = lb.stale ? 'Mất liên lạc, đang thử lại…' : `${lb.mode === 'local' ? 'Trên máy này' : 'Cập nhật tức thời'} · ${d.total} người đã ghi danh`;
       const cf = document.getElementById('codeField'); if (cf) cf.hidden = !lb.codeRequired;
     });
   }
@@ -875,7 +854,7 @@ function wireSignForm() {
   try { name.value = localStorage.getItem('colaudi.name') || ''; code.value = new URLSearchParams(location.search).get('code') || localStorage.getItem('colaudi.code') || ''; } catch { /* storage blocked */ }
   form.addEventListener('submit', async e => {
     e.preventDefault();
-    if (!name.value.trim()) { msg.className = 'msg err'; msg.textContent = 'Hãy nhập tên để ghi danh.'; name.focus(); return; }
+    if (!name.value.trim()) { msg.className = 'msg err'; msg.textContent = 'Xin điền danh xưng để ghi danh.'; name.focus(); return; }
     btn.disabled = true; msg.className = 'msg'; msg.textContent = 'Đang ghi danh…';
     try {
       const res = await lb.submit({ name: name.value, points: points(), timeSec: timeSec(), runId: state.runId, code: code.value });
@@ -892,7 +871,7 @@ function pick(i) {
   if (state.resolved || state.wrong.includes(i)) return;
   if (i === l.ok) {
     state.resolved = true; state.done[l.id] = l.ally ? 'ally' : 'won'; state.wrongs[l.id] = state.wrong.length;
-    if (state.mode === 'full' && wins() >= BATTLES) state.finishedAt = Date.now();
+    if (wins() >= BATTLES) state.finishedAt = Date.now();
     clearTimers(); render(); shout();
   } else {
     state.wrong.push(i); sfx.silence(); sfx.cue('wrong'); render(); // silence: the restarted bar must not hear the old ticks
@@ -904,24 +883,25 @@ function shout() {
   fx.className = 'cryfx';
   fx.innerHTML = reed() + '<div class="word">“Cờ Lau” đi!</div>';
   document.body.appendChild(fx);
-  setTimeout(() => fx.remove(), 1600);
+  // Remove once the reed has crossed; the duration comes from the CSS (--cry-reed, shorter on phones).
+  setTimeout(() => fx.remove(), parseFloat(getComputedStyle(fx).getPropertyValue('--cry-reed')) * 1000 + 100);
 }
 
 /* ---------- input ---------- */
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-act]'); if (!b) return;
   const a = b.dataset.act;
-  if (a === 'start-quick' || a === 'start-full') {
-    go('intro', { ...fresh(), muted: state.muted, mode: a === 'start-quick' ? 'quick' : 'full', startedAt: Date.now(), runId: newRunId() });
+  if (a === 'start') {
+    go('intro', { ...fresh(), muted: state.muted, startedAt: Date.now(), runId: newRunId() });
     sfx.cue('start'); // after go(): a cue fired before it would belong to the scene being left
-    if (state.mode === 'full') lb.start(state.runId);
+    lb.start(state.runId);
   }
   else if (a === 'map') go('map');
   else if (a === 'fight') { go('battle', { cur: b.dataset.id, wrong: [], resolved: false }); sfx.cue('fight'); }
   else if (a === 'pick') pick(+b.dataset.i);
   else if (a === 'treat') openTreat(b);
   else if (a === 'back') go(state.prev && state.prev !== 'board' ? state.prev : 'title');
-  else if (['surrender', 'tally', 'crown', 'finale', 'title', 'board'].includes(a)) go(a);
+  else if (['tally', 'crown', 'finale', 'title', 'board'].includes(a)) go(a);
 });
 /* ---------- khao quân (buy me a coffee) ---------- */
 // Hidden in presenter mode: the shared screen of the talk never shows a request for money.
@@ -947,7 +927,7 @@ document.getElementById('home').onclick = e => { e.currentTarget.blur(); go('tit
 document.getElementById('boardBtn').onclick = e => { e.currentTarget.blur(); go('board'); };
 const sndBtn = document.getElementById('snd');
 // Label precedence: muted wins; otherwise a failed sample load is shown, never silent (the synth plays instead).
-const syncSnd = () => { sndBtn.textContent = 'Âm thanh: ' + (state.muted ? 'tắt' : sampleState === 'failed' ? 'bản tổng hợp (mẫu lỗi) · bấm để tải lại' : 'bật'); syncMute(); };
+const syncSnd = () => { sndBtn.textContent = 'Chiêng trống: ' + (state.muted ? 'tắt' : sampleState === 'failed' ? 'bản tổng hợp (mẫu lỗi) · bấm để tải lại' : 'bật'); syncMute(); };
 function setMuted(v) {
   state.muted = v;
   try { localStorage.setItem(MUTE_KEY, v ? '1' : '0'); } catch { /* storage blocked: the choice just is not remembered */ }
@@ -971,15 +951,15 @@ document.addEventListener('keydown', e => {
     $main.querySelector('[data-primary]')?.click();
   } else if (k === 'escape') {
     if (state.scene === 'board') go(state.prev || 'title');
-    else if (['battle', 'surrender', 'tally'].includes(state.scene)) go('map');
+    else if (['battle', 'tally'].includes(state.scene)) go('map');
   } else if (k === 'l') { if (state.scene !== 'board') go('board'); }
-  else if (k === 's') { if (state.mode !== 'full' && ['title', 'intro', 'map', 'battle'].includes(state.scene)) go(state.mode === 'full' && wins() >= BATTLES ? 'tally' : wins() >= BATTLES ? 'crown' : 'surrender'); }
   else if (k === 'm') setMuted(!state.muted);
 });
 
 /* ---------- boot ---------- */
 function start(data) {
   if (data && data.scene) state = Object.assign(fresh(), data);
+  state.scene = gate(state.scene);
   try { const m = localStorage.getItem(MUTE_KEY); if (m !== null) state.muted = m === '1'; } catch { /* storage blocked */ }
   syncSnd(); lb.probe().finally(() => { if (state.scene === 'tally') render(); }); render();
   // Samples: the presenter loads at once; players wait for the first leaderboard poll so the two never compete.

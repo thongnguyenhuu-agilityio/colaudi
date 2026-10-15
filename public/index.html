@@ -67,6 +67,9 @@ p { margin: 0; max-width: 62ch; }
 .btn { border: 0; border-radius: 8px; padding: .65em 1.3em; font-weight: 700; background: var(--cinnabar); color: var(--plume); box-shadow: 0 3px 0 var(--cinnabar-deep); }
 .btn:hover { filter: brightness(1.08); }
 .btn:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--cinnabar-deep); }
+/* The long start button breaks only between its three phrases; narrow screens stack them without the dashes. */
+.btn.start span { white-space: nowrap; }
+.btn.start i { font-style: normal; }
 .btn.alt { background: none; border: 1.5px solid var(--gold); color: var(--gold); box-shadow: none; }
 .btn:disabled { opacity: .55; cursor: default; }
 .row { display: flex; gap: .8rem; flex-wrap: wrap; align-items: center; }
@@ -149,17 +152,13 @@ button.tile:hover:not(:disabled) { border-color: var(--gold); background: var(--
 .tip b { color: var(--gold); }
 
 /* Victory cry overlay */
-.cryfx { position: fixed; inset: 0; pointer-events: none; display: grid; place-items: center; z-index: 5; }
-.cryfx .word { font-family: var(--display); font-style: italic; font-weight: 700; font-size: clamp(4.4rem, 15vw, 12rem); color: var(--cinnabar); text-shadow: 5px 5px 0 #000, 0 0 40px rgba(0,0,0,.6); animation: shout 1.5s ease-out forwards; }
-.cryfx .reed { position: absolute; left: -24vw; bottom: 6vh; height: 66vh; animation: sweep 1.5s ease-in-out forwards; }
+/* Durations live here so the 820px block and shout() in game.js read one source. */
+.cryfx { --cry-reed: 3s; --cry-word: 2.2s; position: fixed; inset: 0; pointer-events: none; display: grid; place-items: center; z-index: 5; }
+.cryfx .word { font-family: var(--display); font-style: italic; font-weight: 700; font-size: clamp(4.4rem, 15vw, 12rem); color: var(--cinnabar); text-shadow: 5px 5px 0 #000, 0 0 40px rgba(0,0,0,.6); animation: shout var(--cry-word) ease-out forwards; }
+/* Slow enough on a big screen to see the reed cross; phones keep a quick sweep (820px block). */
+.cryfx .reed { position: absolute; left: -24vw; bottom: 6vh; height: 66vh; animation: sweep var(--cry-reed) cubic-bezier(.35, .1, .65, .9) forwards; }
 @keyframes shout { 0% { transform: scale(.4) rotate(-6deg); opacity: 0; } 25% { transform: scale(1.08) rotate(-3deg); opacity: 1; } 70% { opacity: 1; } 100% { transform: scale(1) rotate(-3deg); opacity: 0; } }
 @keyframes sweep { from { transform: translateX(0) rotate(-10deg); } to { transform: translateX(145vw) rotate(10deg); } }
-
-/* Surrender */
-.surrender { display: grid; gap: 1.2rem; }
-.surrender h2 { font-size: clamp(2.4rem, 4.8vw, 3.8rem); color: var(--gold); }
-.mini { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .5rem; }
-.mini .tile { min-height: 4.2em; }
 
 /* Tally + leaderboard (Bảng vàng) */
 .tally { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 1.6rem; align-items: start; }
@@ -230,7 +229,7 @@ button.tile:hover:not(:disabled) { border-color: var(--gold); background: var(--
 .verse span { font-size: .68em; color: var(--dim); }
 .legacy-row { justify-content: space-between; }
 .legacy { font-family: var(--display); font-weight: 700; font-size: clamp(2rem, 3.6vw, 3rem); color: var(--plume); letter-spacing: .02em; }
-[data-at] { opacity: 0; transform: translateY(10px); transition: opacity .8s ease, transform .8s ease; }
+[data-at] { opacity: 0; transform: translateY(10px); transition: opacity .5s ease, transform .5s ease; }
 [data-at].on { opacity: 1; transform: none; }
 .hint { position: absolute; right: 0; bottom: -1.4rem; font-size: .62em; color: var(--dim); }
 
@@ -297,6 +296,9 @@ dialog.treat-box::backdrop { background: rgba(10, 5, 3, .72); }
 .made .link { background: none; border: 0; padding: 0; color: var(--gold); text-decoration: underline; text-underline-offset: .2em; font-size: 1em; }
 
 @media (max-width: 820px) {
+  .btn.start span { display: block; }
+  .btn.start i { display: none; }
+  .cryfx { --cry-reed: 1.5s; --cry-word: 1.5s; }
   .title, .battle, .tally, .wall, .crown { grid-template-columns: 1fr; }
   .fin { grid-template-columns: 1fr; grid-template-areas: "ago" "morph" "born" "decree" "call" "row"; min-height: 0; gap: 1.2rem; }
   .decree { padding: 1.2rem 1.2rem 1rem; }
@@ -307,7 +309,6 @@ dialog.treat-box::backdrop { background: rgba(10, 5, 3, .72); }
   .map .tile { grid-row: auto !important; grid-column: auto !important; }
   .capital { grid-area: auto; grid-column: 1 / -1; order: -1; grid-template-columns: 1fr; }
   .capital .reed { height: 120px; }
-  .mini { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .pips { display: none; }
   .regalia { height: 340px; }
   .regalia .reed { height: 300px; left: calc(50% - 64px); transform-origin: 64px 100%; }
@@ -339,8 +340,8 @@ dialog.treat-box::backdrop { background: rgba(10, 5, 3, .72); }
     <div class="tools">
       <button class="ghost treat" id="treatBtn" type="button">Khao quân</button>
       <button class="ghost" id="boardBtn" type="button">Bảng vàng</button>
-      <button class="ghost" id="snd" type="button">Âm thanh: bật</button>
-      <button class="ghost" id="home" type="button">Màn đầu</button>
+      <button class="ghost" id="snd" type="button">Chiêng trống: bật</button>
+      <button class="ghost" id="home" type="button">Cổng thành</button>
     </div>
   </header>
   <main id="main"></main>

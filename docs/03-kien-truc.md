@@ -34,20 +34,20 @@ flowchart LR
 | `e2e/` | Kiểm thử đầu cuối trên trình duyệt (Playwright) |
 | `vercel.json` | Cấu hình deploy: phục vụ thư mục `public/`, không build, không cài thư viện |
 
-Âm thanh (FR-18): khối `sound` trong `game.js` tải 7 mẫu bằng `fetch` + `decodeAudioData` ngay khi mở trang (người chơi tải sau lần hỏi bảng vàng đầu tiên), rồi phát các cue ngắn qua `sfx.cue(tên)`; không có nhịp nền hay vòng lặp. Mỗi cảnh có một nút gain riêng: `go()` làm nhỏ dần 150 ms và dừng mọi nguồn âm của cảnh cũ; ở màn đăng quang và đoạn kết, mỗi bước là một nhóm riêng nên Enter bỏ qua bước thì trống bước trước dừng, còn chiêng chỉ có một tiếng tại một lúc. Nếu một mẫu lỗi, mọi cue chuyển sang bộ tổng hợp Web Audio và nút ghi "Âm thanh: bản tổng hợp (mẫu lỗi) · bấm để tải lại". Tab ẩn thì tắt dần và `suspend()`. Trạng thái tắt tiếng lưu trong `localStorage`. Chi tiết: [09 Sound plan](09-sound-plan.md).
+Âm thanh (FR-18): khối `sound` trong `game.js` tải 7 mẫu bằng `fetch` + `decodeAudioData` ngay khi mở trang (người chơi tải sau lần hỏi bảng vàng đầu tiên), rồi phát các cue ngắn qua `sfx.cue(tên)`; không có nhịp nền hay vòng lặp. Mỗi cảnh có một nút gain riêng: `go()` làm nhỏ dần 150 ms và dừng mọi nguồn âm của cảnh cũ; ở màn đăng quang và đoạn kết, mỗi bước là một nhóm riêng nên Enter bỏ qua bước thì trống bước trước dừng, còn chiêng chỉ có một tiếng tại một lúc. Nếu một mẫu lỗi, mọi cue chuyển sang bộ tổng hợp Web Audio và nút ghi "Chiêng trống: bản tổng hợp (mẫu lỗi) · bấm để tải lại". Tab ẩn thì tắt dần và `suspend()`. Trạng thái tắt tiếng lưu trong `localStorage`. Chi tiết: [09 Sound plan](09-sound-plan.md).
 
 ## 3. Các màn trong game
 
+Chỉ có một đường đi: không còn chế độ nhanh (Q-31). `go()` đưa mọi lối vào bảng điểm, đăng cơ và màn kết qua `gate()`: nếu chưa đủ 12 sứ quân thì về bản đồ.
+
 ```mermaid
 flowchart LR
-  T[Màn đầu] --> I[Giới thiệu<br/>cậu bé cờ lau]
+  T[Cổng thành<br/>màn đầu] --> I[Giới thiệu<br/>cậu bé cờ lau]
   I --> M[Bản đồ<br/>12 sứ quân]
   M --> B[Trận đánh<br/>A / B / C]
   B --> M
-  M -->|chế độ nhanh: thắng 3 trận| S[Các sứ quân<br/>quy phục]
-  M -->|chế độ đủ: thắng 12 trận| G[Ghi danh<br/>bảng vàng]
-  S --> C[Lên ngôi 968]
-  G --> C
+  M -->|thắng đủ 12 trận| G[Ghi danh<br/>bảng vàng]
+  G --> C[Đăng cơ 968]
   C --> F[Hịch Cờ Lau<br/>Claude ra đời]
   F --> BV[Bảng vàng<br/>toàn màn hình]
 ```
@@ -76,7 +76,7 @@ Trả về 10 người dẫn đầu. CDN giữ kết quả 2 giây (`Cache-Contr
 
 ### `POST /api/leaderboard`
 
-Bắt đầu lượt chơi (khi người chơi bấm "Đánh đủ 12 trận"): `{ "action": "start", "runId": "…" }` → server ghi lại giờ bắt đầu.
+Bắt đầu lượt chơi (khi người chơi bấm "Khởi binh"): `{ "action": "start", "runId": "…" }` → server ghi lại giờ bắt đầu.
 
 Ghi danh: `{ "name": "…", "points": 30, "runId": "…", "code": "…" }`. Thời gian do server tự tính từ giờ bắt đầu; thời gian trình duyệt gửi lên bị bỏ qua.
 

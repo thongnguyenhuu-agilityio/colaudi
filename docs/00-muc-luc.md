@@ -5,7 +5,7 @@ Bộ tài liệu của dự án game demo "Cờ Lau Đi" cho buổi thuyết tr�
 | # | Tài liệu | Dành cho | Nội dung |
 | --- | --- | --- | --- |
 | 01 | [Yêu cầu](01-yeu-cau.md) | Mọi người, BA | Bối cảnh, phạm vi, yêu cầu chức năng và phi chức năng, user story, tiêu chí chấp nhận, ma trận truy vết, nguồn sử liệu |
-| 02 | [Hỏi đáp và quyết định](02-hoi-dap.md) | Mọi người | Toàn bộ 31 câu hỏi, yêu cầu, góp ý đã trao đổi, kèm câu trả lời, phương án cân nhắc và quyết định |
+| 02 | [Hỏi đáp và quyết định](02-hoi-dap.md) | Mọi người | Toàn bộ 32 câu hỏi, yêu cầu, góp ý đã trao đổi, kèm câu trả lời, phương án cân nhắc và quyết định |
 | 03 | [Kiến trúc](03-kien-truc.md) | Dev | Sơ đồ, thành phần, luật tính điểm, API, dữ liệu, quyết định kiến trúc, cách chạy và deploy |
 | 04 | [Kế hoạch buổi thuyết trình và live demo](04-ke-hoach.md) | Người trình bày, ban tổ chức | Lịch chạy chương trình, dàn ý slide, kịch bản demo BA → Dev → QA, kế hoạch làm việc, rủi ro, việc còn mở |
 | 05 | [Tổ chức Google Meet](05-to-chuc-google-meet.md) | Ban tổ chức | Vượt giới hạn 100 người bằng phòng relay A/B, vai trò, danh sách chạy thử |

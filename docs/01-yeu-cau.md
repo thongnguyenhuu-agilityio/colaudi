@@ -4,10 +4,10 @@
 | --- | --- |
 | Dự án | Cờ Lau Đi: game demo cho buổi thuyết trình nội bộ "Claude cho Dev, BA và QA" |
 | Phiên bản tài liệu | 1.0 |
-| Ngày cập nhật | 13/10/2026 |
+| Ngày cập nhật | 14/10/2026 |
 | Chủ sản phẩm (quyết định phi kỹ thuật) | Thông |
 | Phân tích, kiến trúc, phát triển, kiểm thử | Claude |
-| Trạng thái | Đã chốt yêu cầu; đã có bản chạy được; còn 6 việc mở (mục 11) |
+| Trạng thái | Đã chốt yêu cầu; đã có bản chạy được; còn 7 việc mở (mục 11); 14/10 bỏ chế độ nhanh và đổi giọng cổ trang vòng hai (Q-31); 15/10 thêm "Khao quân" (Q-32) |
 | Bộ tài liệu | [00 Mục lục](00-muc-luc.md) |
 
 Tài liệu này được viết như một hồ sơ yêu cầu thật trong quy trình phát triển phần mềm: yêu cầu → hỏi đáp làm rõ → quyết định → user story → truy vết tới code và test. Nó cũng là "đáp án mẫu" cho phần live demo BA → Dev → QA trong buổi thuyết trình.
@@ -37,9 +37,9 @@ Công ty phần mềm thuê ngoài, khách hàng nói tiếng Anh. Thông trình
 **Trong phạm vi**
 
 - Game một trang chạy trên trình duyệt, máy tính và điện thoại.
-- Chế độ tập trận nhanh (3 trận, cho người trình bày) và chế độ đủ 12 trận (cho khán giả).
+- Một cách chơi duy nhất: chiến dịch 12 trận, cho cả người trình bày lẫn khán giả (đã bỏ chế độ tập trận nhanh, [Q-31](02-hoi-dap.md#q-31)).
 - Tính điểm và bảng xếp hạng chung (bảng vàng) cập nhật trực tiếp.
-- Màn lên ngôi năm 968 và màn kết "Claude ra đời".
+- Màn đăng cơ năm 968 (chỉ mở sau khi đủ 12 sứ quân) và màn kết "Claude ra đời".
 - Deploy miễn phí cho một buổi demo.
 
 **Ngoài phạm vi**
@@ -69,20 +69,19 @@ Công ty phần mềm thuê ngoài, khách hàng nói tiếng Anh. Thông trình
 | FR-03 | Bản đồ 12 sứ quân quanh Hoa Lư; mỗi sứ quân là một nỗi khổ của nghề phần mềm | Bắt buộc |
 | FR-04 | Mỗi trận là câu hỏi 3 lựa chọn A/B/C; đáp án đúng là một kỹ thuật dùng Claude, kèm giải thích ngắn | Bắt buộc |
 | FR-05 | Chọn sai thì hiện câu đùa và cho chọn lại | Bắt buộc |
-| FR-06 | Chế độ nhanh: thắng 3 trận, các sứ quân còn lại quy phục | Bắt buộc |
-| FR-07 | Chế độ đủ 12 trận để ghi danh bảng vàng | Bắt buộc |
+| FR-06 | ~~Chế độ nhanh~~ **Đã bỏ (14/10, Q-31).** Không có đường tắt: màn đăng cơ và màn kết chỉ mở được khi cả 12 sứ quân đã dẹp hoặc kết minh | Bắt buộc |
+| FR-07 | Chiến dịch 12 trận là cách chơi duy nhất, tính điểm và ghi danh bảng vàng; sau trận thứ 12: bảng điểm và ghi danh, rồi đăng cơ, rồi màn kết | Bắt buộc |
 | FR-08 | Tính điểm: đúng ngay lần đầu 3 điểm, sai một lần 1 điểm, sai hai lần 0 điểm; tối đa 36 | Bắt buộc |
 | FR-09 | Bảng vàng: 10 người dẫn đầu, sắp theo điểm giảm dần, bằng điểm thì ai nhanh hơn xếp trên | Bắt buộc |
 | FR-10 | Bảng vàng cập nhật trực tiếp (tối đa vài giây) cho mọi người xem | Bắt buộc |
 | FR-11 | Người chơi ghi danh bằng tên tối đa 20 ký tự; mỗi lượt chơi chỉ ghi danh một lần | Bắt buộc |
 | FR-12 | Có thể yêu cầu mã sự kiện khi ghi danh; mã chỉ chiếu trong buổi họp | Nên có |
 | FR-13 | Người điều phối xoá được một tên hoặc xoá trắng bảng vàng | Nên có |
-| FR-14 | Màn lên ngôi năm 968: văn phong hào hùng, đúng sử liệu, nhấn mạnh việc xưng Hoàng đế | Bắt buộc |
+| FR-14 | Màn đăng cơ năm 968 (gọi là "Đăng cơ", [Q-31](02-hoi-dap.md#q-31)): văn phong hào hùng, đúng sử liệu, nhấn mạnh việc xưng Hoàng đế | Bắt buộc |
 | FR-15 | Màn kết: "Trải hơn một nghìn năm", "Cờ Lau Đi" biến thành "Claude", rồi "Hịch Cờ Lau" theo giọng Hịch tướng sĩ, hiệu triệu tướng sỹ tập trận cùng Claude, không gọi đích danh vai trò; câu chốt "Cùng “Cờ Lau”, chúng ta tiến!" | Bắt buộc |
 | FR-16 | Cờ lau vẽ giống cây lau thật: thân có đốt, lá dài hẹp, bông lau tơ mềm bay theo gió | Bắt buộc |
-| FR-17 | Điều khiển bằng bàn phím: A/B/C, Enter, Esc, L (bảng vàng), S (tới đoạn kết), M (tắt tiếng) | Bắt buộc |
-| FR-18 | Có âm thanh trống và chiêng, bật tắt được | Nên có |
-| FR-20 | `public/index.html` → `#treatBtn`, `<dialog id="treat">`, ảnh `public/qr.png`; `public/game.js` → khối "khao quân" (`openTreat`, sao chép, bỏ qua phím game khi hộp mở), liên kết `data-act="treat"` ở cảnh `finale` | `e2e/treat.spec.js` (8 ca: mở từ thanh công cụ, ảnh QR tải được, đóng bằng Esc / nút ✕ / bấm nền; phím A, B, C, L, S không tác động trận đang đánh khi hộp mở; Enter tiếp tục điều khiển game sau khi đóng; sao chép đúng số tài khoản; trình duyệt từ chối clipboard thì bôi đen chữ và không báo "đã chép"; liên kết ở màn kết mở hộp; `?presenter` không có nút lẫn liên kết; điện thoại 375×667 hộp nằm gọn, không cuộn ngang) |
+| FR-17 | Điều khiển bằng bàn phím: A/B/C, Enter, Esc, L (bảng vàng), M (tắt tiếng); phím S "tới đoạn kết" đã gỡ vì bỏ qua các trận (Q-31) | Bắt buộc |
+| FR-18 | Có âm thanh trống và chiêng, bật tắt được (nút ghi "Chiêng trống: bật/tắt") | Nên có |
 | FR-19 | Màn kết trình bày lời hịch như chiếu thư trên giấy dó, đóng ấn son khắc "CLAU · DE" (không dùng logo nhãn hiệu Claude) | Bắt buộc |
 | FR-20 | "Khao quân" (ủng hộ người làm game): nút trên thanh công cụ và một liên kết ở màn kết mở hộp có mã QR ngân hàng, tên ngân hàng, chủ tài khoản, số tài khoản và nội dung chuyển khoản (có nút sao chép); ẩn ở chế độ `?presenter` | Nên có |
 
@@ -117,19 +116,19 @@ Công ty phần mềm thuê ngoài, khách hàng nói tiếng Anh. Thông trình
 
 ## 7. Nhật ký hỏi đáp làm rõ yêu cầu
 
-Toàn bộ 31 câu hỏi, yêu cầu và góp ý, kèm câu trả lời, phương án cân nhắc và quyết định, nằm ở [02 Hỏi đáp và quyết định](02-hoi-dap.md). Các mục ảnh hưởng trực tiếp tới yêu cầu:
+Toàn bộ 32 câu hỏi, yêu cầu và góp ý, kèm câu trả lời, phương án cân nhắc và quyết định, nằm ở [02 Hỏi đáp và quyết định](02-hoi-dap.md). Các mục ảnh hưởng trực tiếp tới yêu cầu:
 
 | Yêu cầu | Mục hỏi đáp |
 | --- | --- |
-| FR-01 đến FR-07, FR-17 (nội dung và cách chơi) | Q-07, Q-24, Q-28 |
+| FR-01 đến FR-07, FR-17 (nội dung và cách chơi) | Q-07, Q-24, Q-28, Q-31 (bỏ chế độ nhanh) |
 | FR-08 đến FR-13 (tính điểm, bảng vàng) | Q-12, Q-15, Q-16 |
-| FR-14 (màn lên ngôi) | Q-17, Q-20 |
+| FR-14 (màn đăng cơ) | Q-17, Q-20, Q-31 |
 | FR-15, FR-19 (màn kết, lời hịch, ấn son, câu chốt) | Q-08, Q-21, Q-22, Q-23, Q-24, Q-26, Q-27 |
 | FR-16 (cờ lau) | Q-18 |
 | NFR-01, NFR-02 (chi phí, tải) | Q-13, Q-15 |
 | NFR-03, NFR-05 (hiển thị qua phòng relay, nội bộ) | Q-02 đến Q-06 |
-| NFR-09 (lời văn tôn trọng người nghe) | Q-24 |
-| FR-20 (khao quân) | Q-31 |
+| NFR-09 (lời văn tôn trọng người nghe) | Q-24, Q-31 (giọng cổ trang vòng hai) |
+| FR-20 (khao quân) | Q-32 |
 
 ---
 
@@ -143,15 +142,15 @@ Sáu quyết định kiến trúc (ADR-01 đến ADR-06), kèm sơ đồ, API v�
 
 ### US-01: Ghi danh bảng vàng
 
-> Là người chơi chế độ đủ 12 trận, tôi muốn được tính điểm và ghi tên lên bảng vàng chung, để thi đua với đồng nghiệp trong buổi thuyết trình.
+> Là người chơi chiến dịch 12 trận, tôi muốn được tính điểm và ghi tên lên bảng vàng chung, để thi đua với đồng nghiệp trong buổi thuyết trình.
 
 **Tiêu chí chấp nhận**
 
 | Mã | Given | When | Then |
 | --- | --- | --- | --- |
-| AC-01 | Tôi đang chơi chế độ đủ 12 trận | Tôi chọn đúng ngay lần đầu | Tôi được 3 điểm cho trận đó |
-| AC-02 | Tôi đang chơi chế độ đủ 12 trận | Tôi chọn sai một lần rồi chọn đúng | Tôi được 1 điểm |
-| AC-03 | Tôi đang chơi chế độ đủ 12 trận | Tôi chọn sai hai lần rồi chọn đúng | Tôi được 0 điểm |
+| AC-01 | Tôi đang chơi chiến dịch 12 trận | Tôi chọn đúng ngay lần đầu | Tôi được 3 điểm cho trận đó |
+| AC-02 | Tôi đang chơi chiến dịch 12 trận | Tôi chọn sai một lần rồi chọn đúng | Tôi được 1 điểm |
+| AC-03 | Tôi đang chơi chiến dịch 12 trận | Tôi chọn sai hai lần rồi chọn đúng | Tôi được 0 điểm |
 | AC-04 | Tôi đã thắng đủ 12 trận | Tôi nhập tên và bấm Ghi danh | Tên, điểm và thời gian của tôi xuất hiện trên bảng vàng, kèm thứ hạng |
 | AC-05 | Hai người bằng điểm | Bảng vàng hiển thị | Người hoàn thành nhanh hơn xếp trên |
 | AC-06 | Tôi đã ghi danh lượt chơi này | Tôi gửi lại lần nữa | Hệ thống từ chối: "Lượt chơi này đã được ghi danh." |
@@ -159,9 +158,9 @@ Sáu quyết định kiến trúc (ADR-01 đến ADR-06), kèm sơ đồ, API v�
 | AC-08 | Có người khác vừa ghi danh | Tôi đang xem bảng vàng | Bảng cập nhật trong vòng vài giây, không cần tải lại trang |
 | AC-09 | Tôi nhập tên dài hơn 20 ký tự | Tôi ghi danh | Tên được cắt còn 20 ký tự |
 
-### US-02: Màn lên ngôi
+### US-02: Màn đăng cơ
 
-> Là người trình bày, tôi muốn màn lên ngôi hào hùng và đúng sử liệu, để câu chuyện có cao trào trước khi tiết lộ "Claude".
+> Là người trình bày, tôi muốn màn đăng cơ hào hùng và đúng sử liệu, để câu chuyện có cao trào trước khi tiết lộ "Claude".
 
 **Tiêu chí chấp nhận**
 
@@ -171,6 +170,7 @@ Sáu quyết định kiến trúc (ADR-01 đến ADR-06), kèm sơ đồ, API v�
 | AC-11 | Nêu đúng: năm Mậu Thìn 968, tước hiệu Đại Thắng Minh Hoàng Đế, quốc hiệu Đại Cồ Việt, kinh đô Hoa Lư, niên hiệu Thái Bình |
 | AC-12 | Nhấn mạnh "Không xưng Vương, xưng Hoàng Đế" và nói đúng rằng nhà Tống chỉ phong tước vương |
 | AC-13 | Toàn bộ màn vừa một màn hình 1440×810 |
+| AC-14 | Chưa dẹp hoặc kết minh đủ 12 sứ quân | Người chơi thử mọi lối (nút, Enter, phím S, nút giả, trạng thái lưu) | Không vào được màn đăng cơ hay màn kết |
 
 ---
 
@@ -185,8 +185,10 @@ Sáu quyết định kiến trúc (ADR-01 đến ADR-06), kèm sơ đồ, API v�
 | FR-12, AC-07 | `api/leaderboard.js` → `EVENT_CODE` | `tests/api.test.js` |
 | FR-13 | `api/leaderboard.js` → `DELETE` | `tests/api.test.js` |
 | NFR-06 | `api/leaderboard.js` → kiểm tra đầu vào | `tests/api.test.js` (5 trường hợp từ chối) |
-| FR-06, FR-14, FR-15, FR-19 | `public/game.js` → cảnh `surrender`, `crown`, `finale`, ấn `SEAL` | `e2e/leaderboard.spec.js` (chế độ nhanh tới màn "Claude") |
-| FR-18 | `public/game.js` → khối `sound` (`sfx.cue`, `sfx.scene`, `setMuted`, `loadSamples`): 7 mẫu CC0 trong `public/sound/` (nguồn ở `LICENSES.md`) phát thành các đoạn ngắn theo bảng cue của [09](09-sound-plan.md); bộ tổng hợp Web Audio là phương án dự phòng, nút ghi rõ "bản tổng hợp (mẫu lỗi)"; tắt tiếng (nút hoặc M) được nhớ trong `localStorage` | `e2e/sound.spec.js` (8 ca: đăng quang có một đỉnh ở nhịp 2 và im lặng ở nhịp 5, 6 (đo bằng render ngoại tuyến); chạy tới đoạn kết khi bật và khi tắt tiếng không lỗi console; nhớ tắt tiếng sau khi tải lại; nhãn dự phòng khi mẫu lỗi và bấm để tải lại; rời cảnh và tắt tiếng dừng hết nguồn âm; tab ẩn thì dừng, hiện lại thì chạy tiếp); đo mức bằng `OfflineAudioContext` (xem [09](09-sound-plan.md) §6); nghe thật ở buổi chạy thử 2 |
+| FR-06 (đã bỏ), FR-07, AC-14 | `public/game.js` → `gate()` (mọi lối vào `tally`, `crown`, `finale` đều qua đây, cần `wins() >= BATTLES`), một nút `start`, đã gỡ phím `S` | `e2e/campaign.spec.js` (5 ca: màn đầu chỉ có một nút bắt đầu; phím S không bỏ qua trận; dưới 12 sứ quân không phím, nút giả hay trạng thái lưu nào tới được màn đăng cơ; trận thứ 12 mở bảng điểm rồi đăng cơ) |
+| FR-14, FR-15, FR-19 | `public/game.js` → cảnh `crown`, `finale`, ấn `SEAL` | `e2e/leaderboard.spec.js` (12 trận tới màn đăng cơ và "Claude") |
+| FR-18 | `public/game.js` → khối `sound` (`sfx.cue`, `sfx.scene`, `setMuted`, `loadSamples`): 7 mẫu CC0 trong `public/sound/` (nguồn ở `LICENSES.md`) phát thành các đoạn ngắn theo bảng cue của [09](09-sound-plan.md); bộ tổng hợp Web Audio là phương án dự phòng, nút ghi rõ "bản tổng hợp (mẫu lỗi)"; tắt tiếng (nút hoặc M) được nhớ trong `localStorage` | `e2e/sound.spec.js` (8 ca: đăng quang có một đỉnh ở nhịp 2 và im lặng ở nhịp 5, 6 (đo bằng render ngoại tuyến); chơi đủ 12 trận tới đoạn kết khi bật và khi tắt tiếng không lỗi console; nhớ tắt tiếng sau khi tải lại; nhãn dự phòng khi mẫu lỗi và bấm để tải lại; rời cảnh và tắt tiếng dừng hết nguồn âm; tab ẩn thì dừng, hiện lại thì chạy tiếp); đo mức bằng `OfflineAudioContext` (xem [09](09-sound-plan.md) §6); nghe thật ở buổi chạy thử 2 |
+| FR-20 | `public/index.html` → `#treatBtn`, `<dialog id="treat">`, ảnh `public/qr.png`; `public/game.js` → khối "khao quân" (`openTreat`, sao chép, bỏ qua phím game khi hộp mở), liên kết `data-act="treat"` ở cảnh `finale` | `e2e/treat.spec.js` (8 ca: mở từ thanh công cụ, ảnh QR tải được, đóng bằng Esc / nút ✕ / bấm nền; phím A, B, C, L, S không tác động trận đang đánh khi hộp mở; Enter tiếp tục điều khiển game sau khi đóng; sao chép đúng số tài khoản; trình duyệt từ chối clipboard thì bôi đen chữ và không báo "đã chép"; liên kết ở màn kết mở hộp; `?presenter` không có nút lẫn liên kết; điện thoại 375×667 hộp nằm gọn, không cuộn ngang) |
 
 ---
 
@@ -199,8 +201,8 @@ Sáu quyết định kiến trúc (ADR-01 đến ADR-06), kèm sơ đồ, API v�
 | V-03 | Tên co-host và người vận hành phòng relay B | Thông |
 | V-04 | Đồng ý chạy game trên link công khai có mã sự kiện | Thông |
 | V-05 | Phần thưởng nhỏ cho 3 người đứng đầu bảng vàng (không bắt buộc) | Thông |
-| V-07 | Thay `public/qr.png` (đang là ảnh mẫu "không chuyển tiền") và thông tin ngân hàng mẫu trong `public/index.html` bằng tài khoản thật trước khi đẩy `main` | Thông |
 | V-06 | Deploy lần đầu | Thông, theo [07 Deployment plan](07-deployment.md) mục 4 |
+| V-07 | Thay `public/qr.png` (đang là ảnh mẫu "không chuyển tiền") và thông tin ngân hàng mẫu trong `public/index.html` bằng tài khoản thật trước khi đẩy `main` | Thông |
 
 ---
 

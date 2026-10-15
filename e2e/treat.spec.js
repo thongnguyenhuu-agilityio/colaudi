@@ -1,4 +1,5 @@
 import { test, expect } from '@playwright/test';
+import { startCampaign, winAll } from './campaign.js';
 
 // "Khao quân" (buy me a coffee): a modal with the bank QR, opened from the header or the finale.
 
@@ -29,8 +30,7 @@ test('the header button opens the dialog with a loaded QR, and every way out clo
 
 test('an open dialog swallows game keys, and the battle resumes untouched after closing', async ({ page }) => {
   await page.goto('/');
-  await page.keyboard.press('Enter'); // Tập trận nhanh
-  await page.keyboard.press('Enter'); // Xuất quân
+  await startCampaign(page);
   await page.locator('button.tile:not([disabled])').first().click();
   const dialog = await openFromHeader(page);
   for (const key of ['a', 'b', 'c', 'l', 's']) await page.keyboard.press(key);
@@ -71,16 +71,12 @@ test('a refused clipboard selects the text and never claims it was copied', asyn
   expect(await page.evaluate(() => getSelection().toString())).toBe('0123 456 789');
 });
 
+// Title -> the 12 battles -> tally -> crown -> finale, without signing the board.
 async function toFinale(page) {
-  await page.keyboard.press('Enter');
-  await page.keyboard.press('Enter');
-  for (let i = 0; i < 2; i++) {
-    await page.locator('button.tile:not([disabled])').first().click();
-    for (const key of ['a', 'b', 'c']) { await page.keyboard.press(key); if (await page.locator('.result').isVisible()) break; }
-    if (i < 1) await page.keyboard.press('Escape');
-  }
-  await page.getByRole('button', { name: 'Tiếp tục' }).click();
-  await page.getByRole('button', { name: 'Lên ngôi' }).click();
+  await startCampaign(page);
+  await winAll(page);
+  await page.getByRole('button', { name: 'Ghi danh bảng vàng' }).click();
+  await page.getByRole('button', { name: 'Đăng cơ' }).click();
   for (let i = 0; i < 16; i++) await page.keyboard.press('Enter');
 }
 
@@ -100,7 +96,7 @@ test('presenter mode shows no request for money', async ({ page }) => {
   await expect(page.locator('#boardBtn')).toBeVisible();
   await toFinale(page);
   await expect(page.locator('.fin > .row')).toHaveClass(/on/, { timeout: 15_000 });
-  await expect(page.locator('.made')).toHaveText('Trò chơi này được làm cùng Claude.');
+  await expect(page.locator('.made')).toHaveText('Trò chơi này dựng nên cùng Claude.');
 });
 
 test('on a phone the dialog fits the screen with no sideways scroll', async ({ browser }) => {

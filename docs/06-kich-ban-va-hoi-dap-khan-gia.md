@@ -2,7 +2,7 @@
 
 | Mục | Nội dung |
 | --- | --- |
-| Ngày cập nhật | 13/10/2026 |
+| Ngày cập nhật | 14/10/2026 (bỏ chế độ nhanh) |
 | Trạng thái | Bản đầu, chờ Thông duyệt (gói việc 5 trong [04 Kế hoạch](04-ke-hoach.md)) |
 | Liên quan | [04 Kế hoạch](04-ke-hoach.md) · [02 Hỏi đáp](02-hoi-dap.md) Q-01, Q-14 |
 
@@ -12,9 +12,11 @@ Ba thông điệp được nhắc ở đầu và ở cuối buổi:
 2. Chất lượng đến từ ngữ cảnh: CLAUDE.md, skill, hook, subagent, MCP.
 3. Khi viết code gần như không tốn chi phí, review mới là nút thắt.
 
-## 1. Mở màn: Cờ Lau Đi (0:00–2:00)
+## 1. Mở màn: Cờ Lau Đi (0:00–2:00, cần xếp lại)
 
-**Màn hình:** game ở màn đầu. Nhấn Enter để vào chế độ nhanh.
+> **⚠ Thời lượng: 12 trận trên sân khấu.** Không còn chế độ nhanh: muốn tới màn đăng cơ ở phần kết thì phải dẹp đủ 12 sứ quân. Mỗi trận khoảng 50 giây (bỏ phiếu 20 giây, đọc kết quả chat, tiếng hô, câu "Chiêu Claude"), nên 12 trận khoảng 10 phút, thêm khoảng 10 đến 11 phút so với lịch ở [04](04-ke-hoach.md) mục 3. Việc xếp lại lịch đang chờ Thông quyết; các bước dưới đây ghi cách chơi, không ghi giờ.
+
+**Màn hình:** game ở màn đầu (cổng thành). Nhấn Enter để "Khởi binh", Enter nữa để "Xuất quân".
 
 **Lời nói (màn giới thiệu):**
 
@@ -22,11 +24,11 @@ Ba thông điệp được nhắc ở đầu và ở cuối buổi:
 >
 > "Hôm nay mình cần anh em giúp dẹp loạn mười hai sứ quân. Mỗi trận có ba chiêu A, B, C. Anh em gõ đáp án vào chat Meet, mình chốt theo số đông."
 
-**Chơi 2 trận:** Kiều Công Hãn (Plan mode) và Nguyễn Khoan (CLAUDE.md). Đọc to kết quả chat ("đa số chọn C!"), nhấn phím, để tiếng hô vang lên. Nếu khán giả chọn sai, đọc câu đùa rồi cho bỏ phiếu lại.
+**Chơi các trận:** mở đầu bằng Kiều Công Hãn (Plan mode) và Nguyễn Khoan (CLAUDE.md), vì hai chiêu này sẽ làm thật ở phần demo; các trận còn lại theo thứ tự trên bản đồ. Đọc to kết quả chat ("đa số chọn C!"), nhấn phím, để tiếng hô vang lên. Nếu khán giả chọn sai, đọc câu đùa rồi cho bỏ phiếu lại.
 
-**Dừng trước đoạn kết.** Để game ở bản đồ, chuyển sang slide.
+**Dừng trước trận cuối.** Để game ở bản đồ với 11 sứ quân đã dẹp, chuyển sang slide; trận thứ 12 chơi ngay trước phần kết (mục 5). Nếu đã chơi đủ 12 trận ở mở màn, dừng ở bảng điểm rồi chuyển sang slide.
 
-> "Hai chiêu vừa rồi anh em sẽ thấy làm thật trong ít phút nữa. Câu hỏi là: anh em đang dùng AI để gõ code giùm, hay đã giao cho nó cả một trận đánh?"
+> "Mấy chiêu vừa rồi anh em sẽ thấy làm thật trong ít phút nữa. Câu hỏi là: anh em đang dùng AI để gõ code giùm, hay đã giao cho nó cả một trận đánh?"
 
 **Ghi chú:** nếu chat im, co-host gõ đáp án đầu tiên để mở màn. Phòng B bỏ phiếu ở chat riêng; người vận hành đọc giúp.
 
@@ -60,13 +62,13 @@ Câu lệnh và các bước xem [04 Kế hoạch](04-ke-hoach.md) mục 5. Câu
 
 Nội dung slide này phụ thuộc việc còn mở V-02 (công ty đã có Claude cho nhân viên chưa).
 
-## 5. Kết: lên ngôi và Hịch Cờ Lau (28:30–30:00)
+## 5. Kết: đăng cơ và Hịch Cờ Lau (28:30–30:00)
 
-**Màn hình:** quay lại game. Nhấn `S` để tới đoạn các sứ quân quy phục, rồi "Lên ngôi".
+**Màn hình:** quay lại game, chơi nốt trận còn lại (nếu chưa đủ 12). Ở bảng điểm nhấn Enter (không cần ghi danh), sang "Đăng cơ". Không còn phím tắt: phím `S` đã gỡ.
 
-**Lời nói (màn lên ngôi, có thể để màn tự chạy):**
+**Lời nói (màn đăng cơ, có thể để màn tự chạy):**
 
-> "Năm 968, cậu bé cầm cờ lau năm nào lên ngôi, xưng Đại Thắng Minh Hoàng Đế, quốc hiệu Đại Cồ Việt. Không xưng vương, xưng Hoàng đế. Lưu danh thiên cổ."
+> "Năm 968, cậu bé cầm cờ lau năm nào đăng cơ, xưng Đại Thắng Minh Hoàng Đế, quốc hiệu Đại Cồ Việt. Không xưng vương, xưng Hoàng đế. Lưu danh thiên cổ."
 
 Nhấn Enter sang "Trải hơn một nghìn năm…". **Im lặng** trong lúc chữ "Cờ Lau Đi" biến thành "Claude" (khoảng 6 giây). Để tiếng chiêng vang hết.
 
